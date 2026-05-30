@@ -1,9 +1,9 @@
 /**
- * Prompt construction for the live-Claude baselines. Both baselines see the
+ * Prompt construction for the live-agent baselines. All providers see the
  * SAME task: "the backend.arch spec changed — make the generated project match
  * it." Neither receives a typed diff or an affected-path allowlist (that is
  * precisely what Arch adds and the baselines lack). The difference is the
- * system prompt: `claude-broad-constrained` adds high-level guardrails.
+ * constraint prompt: broad-constrained baselines add high-level guardrails.
  */
 
 import type { BenchTask } from "../manifest/schema.js";

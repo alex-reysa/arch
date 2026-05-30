@@ -8,6 +8,16 @@ import type { BaselineId } from "../manifest/schema.js";
 export const BENCH_RESULTS_SCHEMA_VERSION = "arch.bench.results.v1" as const;
 
 export type DriftRecall = "not_applicable" | "detected" | "missed";
+export type LlmProvider = "claude-code" | "grok-build" | "cursor-composer";
+export type BillingMode = "metered" | "subscription" | "unknown";
+
+export interface LlmMetadata {
+  readonly provider: LlmProvider;
+  readonly model?: string;
+  readonly costUsd?: number;
+  readonly sessionId?: string;
+  readonly billingMode?: BillingMode;
+}
 
 /** One task × baseline × repeat outcome. Mirrors the plan's metric schema. */
 export interface BenchResult {
@@ -29,7 +39,7 @@ export interface BenchResult {
   readonly repairSucceeded?: boolean;
   readonly planDeterministic?: boolean;
   readonly migrationDataPreserved?: boolean;
-  readonly llm?: { readonly provider: "claude-code"; readonly costUsd?: number; readonly sessionId?: string };
+  readonly llm?: LlmMetadata;
   /** Free-form notes / failure reason for the human-readable report. */
   readonly note?: string;
 }

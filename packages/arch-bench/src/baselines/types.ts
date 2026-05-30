@@ -12,6 +12,8 @@ import type { LoadedManifest } from "../manifest/load.js";
 import type { ArchCli } from "../runner/arch-cli.js";
 import type { Workspace } from "../runner/workspace.js";
 import type { ClaudeTransport } from "../llm/claude-runner.js";
+import type { LiveAgentProvider, LiveAgentTransport } from "../llm/agent-runner.js";
+import type { LlmMetadata } from "../report/results.js";
 
 export interface EvolveContext {
   readonly task: BenchTask;
@@ -22,7 +24,9 @@ export interface EvolveContext {
   readonly toSpecSource: string;
   /** Present only for live baselines; the orchestrator injects the transport. */
   readonly claudeTransport?: ClaudeTransport;
+  readonly liveTransports?: Partial<Record<LiveAgentProvider, LiveAgentTransport>>;
   readonly liveModel?: string;
+  readonly liveModels?: Partial<Record<LiveAgentProvider, string>>;
   readonly log: (msg: string) => void;
 }
 
@@ -32,7 +36,7 @@ export interface EvolveOutcome {
   /** Did the project verify (typecheck + tests) after the step. */
   readonly verificationPassed: boolean;
   readonly planDeterministic?: boolean;
-  readonly llm?: { readonly provider: "claude-code"; readonly costUsd?: number; readonly sessionId?: string };
+  readonly llm?: LlmMetadata;
   readonly note?: string;
   /** Captured stdout/stderr for the run artifact. */
   readonly logs: string;

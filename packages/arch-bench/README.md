@@ -4,9 +4,9 @@ A first-class benchmark for **intent-to-code synchronization**: when a backend
 specification evolves, how faithfully, minimally, and safely does each approach
 bring the generated code back in sync?
 
-It runs a five-subject, up-to-100-task study comparing four baselines on the
+It runs a five-subject, up-to-100-task study comparing eight baselines on the
 same ordered sequence of spec evolutions, in isolated temp workspaces, driving
-the **real** Arch CLI and (optionally) a **real** Claude Code CLI.
+the **real** Arch CLI and optional live coding-agent CLIs.
 
 ## Baselines
 
@@ -16,8 +16,12 @@ the **real** Arch CLI and (optionally) a **real** Claude Code CLI.
 | `full-regeneration` | Compile the target spec and rewrite **every** Arch-owned artifact from the target IR — no typed diff, no affected-artifact planning. Preserves `src/custom/**`. Measures churn + the absence of a safety gate. | no |
 | `claude-direct-edit` | `claude -p` with file-edit tools enabled, run in the project dir. No typed diff, no allowlist, no constraints. | yes (gated) |
 | `claude-broad-constrained` | Same, plus a high-level constraint system prompt (don't touch `src/custom/**`, don't weaken tests, preserve shape). Still no typed diff / allowlist. | yes (gated) |
+| `grok-direct-edit` | `grok -p` / Grok Build with file-edit tools enabled, run in the project dir. No typed diff, no allowlist, no constraints. | yes (gated) |
+| `grok-broad-constrained` | Same, plus the broad constraint prompt passed as Grok rules. Still no typed diff / allowlist. | yes (gated) |
+| `composer-direct-edit` | `cursor-agent -p --model composer-2.5` with file-edit tools enabled in the project dir. No typed diff, no allowlist, no constraints. | yes (gated) |
+| `composer-broad-constrained` | Same, with the broad constraint prompt embedded into the Composer prompt. Still no typed diff / allowlist. | yes (gated) |
 
-Deterministic baselines run once; live-Claude baselines run `--repeats` times
+Deterministic baselines run once; live-agent baselines run `--repeats` times
 (default 3) to measure run-to-run variance.
 
 ## Task kinds (20-per-subject mix)
@@ -38,7 +42,7 @@ guarantee behavior, human-owned preservation) — not generated structure.
 `expectedFilesTouched`, `offScopeFilesTouched`, `humanOwnedViolations`,
 `generatedTestDeletedOrWeakened`, `verificationPassed`, `oraclePassed`,
 `driftRecall`, `repairSucceeded`, `planDeterministic`, `migrationDataPreserved`,
-and `llm` (provider / `costUsd` / `sessionId`). See
+and `llm` (provider / model / billing mode / `costUsd` / `sessionId`). See
 [`src/report/results.ts`](src/report/results.ts).
 
 `off-scope` is content-diff based: rewriting a file with identical bytes is not
@@ -51,11 +55,15 @@ collateral edits show up directly.
 # Fast smoke (deterministic baselines, 2 subjects × 2 tasks):
 pnpm bench:smoke
 
-# Full paper run (requires a live, authenticated Claude Code CLI):
+# Full paper run (requires authenticated live-agent CLIs):
 ARCH_BENCH_LIVE=1 ARCH_BENCH_REPEATS=3 pnpm bench:paper
 
 # Re-summarize an existing run:
-pnpm bench:summarize -- artifacts/bench/<run-id>/results.json
+pnpm bench:summarize artifacts/bench/<run-id>/results.json
+
+# Merge sharded paper runs:
+pnpm bench:merge -- --inputs "artifacts/bench/paper-*/results.json" \
+  --out artifacts/bench/paper-combined
 ```
 
 Or the CLI directly:
@@ -70,11 +78,44 @@ Outputs land in `artifacts/bench/<run-id>/`:
 
 ### Environment
 
-- `ARCH_BENCH_LIVE=1` — enable the live Claude baselines (required for `paper`).
-- `ARCH_BENCH_MODEL=<model-id>` — model for the live baselines.
+- `ARCH_BENCH_LIVE=1` — enable live baselines (required for `paper`).
+- `ARCH_BENCH_CLAUDE_MODEL=sonnet` — Claude model. Falls back to
+  `ARCH_BENCH_MODEL` for backward compatibility, then `sonnet`.
+- `ARCH_BENCH_GROK_MODEL=grok-build` — Grok Build model.
+- `ARCH_BENCH_COMPOSER_MODEL=composer-2.5` — Cursor Composer model.
+- `ARCH_BENCH_CLAUDE_BIN=claude`, `ARCH_BENCH_GROK_BIN=grok`,
+  `ARCH_BENCH_COMPOSER_BIN=cursor-agent` — override CLI binaries.
 - `ARCH_BENCH_REPEATS=<n>` — live-baseline repeats (default 3).
 - `ARCH_BENCH_SMOKE=1` — enable the gated integration tests under
   `test-integration/`.
+
+Preflight checks run for selected live providers. Claude requires
+`claude --version`; Grok requires `grok models` without "not authenticated";
+Composer requires `cursor-agent models` and the selected Composer model.
+Grok and Composer subscription runs record `billingMode: "subscription"`;
+Claude records `billingMode: "metered"` and captures `costUsd` when the CLI
+exposes it.
+
+### Calibration and sharding
+
+Run a small calibration before the full paper run:
+
+```bash
+ARCH_BENCH_LIVE=1 \
+ARCH_BENCH_CLAUDE_MODEL=sonnet \
+ARCH_BENCH_GROK_MODEL=grok-build \
+ARCH_BENCH_COMPOSER_MODEL=composer-2.5 \
+pnpm bench:paper -- \
+  --subjects social-feed,task-tracker \
+  --max-tasks 2 \
+  --repeats 1 \
+  --baselines claude-direct-edit,claude-broad-constrained,grok-direct-edit,grok-broad-constrained,composer-direct-edit,composer-broad-constrained \
+  --out artifacts/bench/calibration-multimodel
+```
+
+The full run is intentionally shardable by subject, provider, variant, or
+repeat, then merged with `arch-bench merge`. This avoids losing multi-day live
+runs to one process failure.
 
 ## Dataset
 
@@ -116,9 +157,9 @@ Re-merge per-subject task sets and re-validate with
 - The runner drives the real CLI by spawning `tsx packages/arch-cli/src/main.ts`
   from the repo root (mirrors `scripts/run-examples-e2e.ts`), with a `pnpm`
   shim so generated projects install + verify.
-- The two live-Claude modes differ from the constrained `ClaudeCodeProvider` in
-  `@arch/agents` (tools OFF, isolated tmpdir): the bench runs `claude -p` with
-  tools ON in the project dir so Claude edits real files. The transport is
-  injectable, so the whole path is unit- and integration-tested with a fake.
+- Live modes differ from the constrained `ClaudeCodeProvider` in `@arch/agents`
+  (tools OFF, isolated tmpdir): the bench runs provider CLIs with tools ON in
+  the project dir so agents edit real files. The transport is injectable, so the
+  whole path is unit- and integration-tested with fakes.
 - CI runs only the unit tests + `bench:smoke`. The full `bench:paper` run is
   manual because it is live, slow, and billable.

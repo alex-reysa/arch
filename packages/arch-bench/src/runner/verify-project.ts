@@ -1,7 +1,7 @@
 /**
  * Verify a generated project the way a developer would: `pnpm install` (when
  * needed) → `pnpm typecheck` (`tsc --noEmit`) → `pnpm test` (`vitest run`).
- * Used by the `full-regeneration` and live-Claude baselines, which do NOT go
+ * Used by the `full-regeneration` and live-agent baselines, which do NOT go
  * through `arch apply` (whose verification gate is built in).
  */
 

@@ -37,9 +37,13 @@ export {
   type RunResults,
   type RunMeta,
   type DriftRecall,
+  type LlmMetadata,
+  type LlmProvider,
+  type BillingMode,
 } from "./report/results.js";
 export { toCsv } from "./report/csv.js";
 export { toSummaryMarkdown, type TaskIndex, type TaskIndexEntry } from "./report/summary.js";
+export { mergeRunResults, type MergeMeta } from "./report/merge.js";
 export { writeRunArtifacts, type WrittenArtifacts } from "./report/write.js";
 
 export { compileSpec, type CompileResult } from "./runner/compile.js";
@@ -48,6 +52,18 @@ export { runSuite, type SuiteOptions } from "./runner/orchestrator.js";
 
 export { getBaseline, BASELINES } from "./baselines/registry.js";
 export type { Baseline, EvolveContext, EvolveOutcome } from "./baselines/types.js";
+
+export {
+  runLiveAgent,
+  buildLiveAgentInvocation,
+  buildLiveAgentArgs,
+  spawnLiveAgentTransport,
+  type LiveAgentProvider,
+  type LiveAgentTransport,
+  type LiveAgentRequest,
+  type LiveAgentOutcome,
+  type LiveAgentProcessResult,
+} from "./llm/agent-runner.js";
 
 export {
   runClaude,

@@ -64,6 +64,23 @@ describe("toCsv", () => {
     const csv = toCsv(run);
     expect(csv).toContain('"blocked, as expected"');
   });
+
+  it("emits live provider model and billing metadata", () => {
+    const run = buildRunResults(META, [
+      result({
+        baseline: "grok-direct-edit",
+        llm: { provider: "grok-build", model: "grok-build", billingMode: "subscription" },
+      }),
+    ]);
+    const csv = toCsv(run);
+    const header = csv.split("\n")[0]!;
+    const row = csv.split("\n")[1]!;
+    expect(header).toContain("provider");
+    expect(header).toContain("model");
+    expect(header).toContain("billingMode");
+    expect(row).toContain("grok-build");
+    expect(row).toContain("subscription");
+  });
 });
 
 describe("toSummaryMarkdown", () => {
@@ -113,5 +130,19 @@ describe("toSummaryMarkdown", () => {
     const md = toSummaryMarkdown(run, TASK_INDEX);
     expect(md).toContain("Live-repeat variance");
     expect(md).toContain("claude-direct-edit");
+  });
+
+  it("includes live provider and model metadata in the baseline summary", () => {
+    const run = buildRunResults(META, [
+      result({
+        baseline: "composer-direct-edit",
+        llm: { provider: "cursor-composer", model: "composer-2.5", billingMode: "subscription" },
+      }),
+    ]);
+    const md = toSummaryMarkdown(run, TASK_INDEX);
+    expect(md).toContain("Providers");
+    expect(md).toContain("cursor-composer");
+    expect(md).toContain("composer-2.5");
+    expect(md).toContain("subscription");
   });
 });

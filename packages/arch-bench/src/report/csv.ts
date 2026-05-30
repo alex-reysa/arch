@@ -21,6 +21,9 @@ const COLUMNS = [
   "repairSucceeded",
   "planDeterministic",
   "migrationDataPreserved",
+  "provider",
+  "model",
+  "billingMode",
   "costUsd",
   "sessionId",
   "note",
@@ -38,6 +41,9 @@ export function toCsv(run: RunResults): string {
   for (const r of run.results) {
     const row: Record<string, unknown> = {
       ...r,
+      provider: r.llm?.provider,
+      model: r.llm?.model,
+      billingMode: r.llm?.billingMode,
       costUsd: r.llm?.costUsd,
       sessionId: r.llm?.sessionId,
     };

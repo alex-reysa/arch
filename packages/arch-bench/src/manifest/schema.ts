@@ -10,23 +10,38 @@
 
 export const BENCH_MANIFEST_SCHEMA_VERSION = "arch.bench.manifest.v1" as const;
 
-/** The four baselines compared by the study. */
+/** The deterministic and live-agent baselines compared by the study. */
 export type BaselineId =
   | "arch-typed-sync"
   | "full-regeneration"
   | "claude-direct-edit"
-  | "claude-broad-constrained";
+  | "claude-broad-constrained"
+  | "grok-direct-edit"
+  | "grok-broad-constrained"
+  | "composer-direct-edit"
+  | "composer-broad-constrained";
 
 export const BASELINE_IDS: readonly BaselineId[] = [
   "arch-typed-sync",
   "full-regeneration",
   "claude-direct-edit",
   "claude-broad-constrained",
+  "grok-direct-edit",
+  "grok-broad-constrained",
+  "composer-direct-edit",
+  "composer-broad-constrained",
 ];
 
 /** Whether a baseline calls a live LLM (and is therefore gated + repeated). */
 export function isLiveBaseline(id: BaselineId): boolean {
-  return id === "claude-direct-edit" || id === "claude-broad-constrained";
+  return (
+    id === "claude-direct-edit" ||
+    id === "claude-broad-constrained" ||
+    id === "grok-direct-edit" ||
+    id === "grok-broad-constrained" ||
+    id === "composer-direct-edit" ||
+    id === "composer-broad-constrained"
+  );
 }
 
 /** Kinds of evolution task in the 20-per-subject mix. */

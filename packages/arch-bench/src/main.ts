@@ -5,20 +5,22 @@
  *   arch-bench run --suite paper --out artifacts/bench/<run-id>
  *   arch-bench run --suite smoke --baselines arch-typed-sync,full-regeneration
  *   arch-bench summarize --input artifacts/bench/<run-id>/results.json
+ *   arch-bench merge --inputs <paper-run-results-glob> --out artifacts/bench/paper-combined
  */
 
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { spawnSync } from "node:child_process";
 import { BASELINE_IDS, isLiveBaseline, type BaselineId } from "./manifest/schema.js";
 import { buildTaskIndex, loadManifest } from "./manifest/load.js";
 import { runSuite } from "./runner/orchestrator.js";
-import { spawnClaudeTransport } from "./llm/claude-runner.js";
 import { buildRunResults, type RunResults } from "./report/results.js";
 import { writeRunArtifacts } from "./report/write.js";
 import { toSummaryMarkdown } from "./report/summary.js";
+import { mergeRunResults } from "./report/merge.js";
+import { spawnLiveAgentTransport, type LiveAgentProvider, type LiveAgentTransport } from "./llm/agent-runner.js";
+import { preflightLiveProviders, type LiveCliConfig } from "./llm/preflight.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -30,6 +32,7 @@ async function main(argv: string[]): Promise<number> {
   }
   if (command === "run") return runCommand(rest);
   if (command === "summarize") return summarizeCommand(rest);
+  if (command === "merge") return mergeCommand(rest);
   process.stderr.write(`arch-bench: unknown command '${command}'\n`);
   printHelp();
   return 64;
@@ -43,6 +46,7 @@ function printHelp(): void {
       "Usage:",
       "  arch-bench run --suite <paper|smoke> [options]",
       "  arch-bench summarize --input <results.json> [--manifest <path>]",
+      "  arch-bench merge --inputs <results.json[,results.json]|glob> --out <dir> [--manifest <path>]",
       "",
       "run options:",
       "  --suite <paper|smoke>     Preset (default: smoke)",
@@ -54,8 +58,9 @@ function printHelp(): void {
       "  --repeats <n>             Live-baseline repeats (default 3, env ARCH_BENCH_REPEATS)",
       "  --keep                    Keep temp workspaces",
       "",
-      "Live LLM baselines require ARCH_BENCH_LIVE=1 and an authenticated `claude` CLI.",
-      "Optional: ARCH_BENCH_MODEL=<model-id>.",
+      "Live LLM baselines require ARCH_BENCH_LIVE=1 and authenticated provider CLIs.",
+      "Models: ARCH_BENCH_CLAUDE_MODEL=sonnet, ARCH_BENCH_GROK_MODEL=grok-build,",
+      "        ARCH_BENCH_COMPOSER_MODEL=composer-2.5. ARCH_BENCH_MODEL is a Claude fallback.",
       "",
     ].join("\n"),
   );
@@ -117,14 +122,19 @@ async function runCommand(argv: readonly string[]): Promise<number> {
 
   const live = process.env["ARCH_BENCH_LIVE"] === "1";
   const wantsLive = baselines.some(isLiveBaseline);
+  const liveConfig = readLiveCliConfig();
+  const liveProviders = providersForBaselines(baselines);
 
   if (args.suite === "paper" && wantsLive) {
     if (!live) {
-      process.stderr.write("arch-bench: paper suite requires ARCH_BENCH_LIVE=1 for the live Claude baselines\n");
+      process.stderr.write("arch-bench: paper suite requires ARCH_BENCH_LIVE=1 for the live baselines\n");
       return 2;
     }
-    if (!claudeAvailable()) {
-      process.stderr.write("arch-bench: `claude` CLI not found on PATH; cannot run live baselines\n");
+  }
+  if (live && liveProviders.length > 0) {
+    const preflight = preflightLiveProviders(liveProviders, liveConfig);
+    if (!preflight.ok) {
+      process.stderr.write(`arch-bench: ${preflight.errors.join("\narch-bench: ")}\n`);
       return 2;
     }
   }
@@ -137,8 +147,7 @@ async function runCommand(argv: readonly string[]): Promise<number> {
   process.stdout.write(`  subjects:  ${subjects.join(", ")}\n`);
   process.stdout.write(`  live: ${live && wantsLive ? "yes" : "no"}  out: ${outDir}\n`);
 
-  const transport = live && wantsLive ? spawnClaudeTransport() : undefined;
-  const liveModel = process.env["ARCH_BENCH_MODEL"];
+  const liveTransports = live && wantsLive ? buildLiveTransports(liveProviders, liveConfig) : undefined;
 
   const results = await runSuite({
     loaded,
@@ -147,8 +156,8 @@ async function runCommand(argv: readonly string[]): Promise<number> {
     repeats,
     subjects,
     ...(maxTasksPerSubject !== undefined ? { maxTasksPerSubject } : {}),
-    ...(transport ? { claudeTransport: transport } : {}),
-    ...(liveModel ? { liveModel } : {}),
+    ...(liveTransports ? { liveTransports } : {}),
+    liveModels: liveConfig.models,
     artifactsDir: outDir,
     keepWorkspace: args.keep,
     log: (m) => process.stdout.write(m + "\n"),
@@ -204,6 +213,48 @@ async function summarizeCommand(argv: readonly string[]): Promise<number> {
   return 0;
 }
 
+async function mergeCommand(argv: readonly string[]): Promise<number> {
+  let inputsArg: string | undefined;
+  let manifestPath: string | undefined;
+  let out: string | undefined;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--inputs") inputsArg = argv[++i];
+    else if (a === "--manifest") manifestPath = argv[++i];
+    else if (a === "--out") out = argv[++i];
+  }
+  if (!inputsArg) {
+    process.stderr.write("arch-bench merge: --inputs <results.json[,results.json]|glob> is required\n");
+    return 64;
+  }
+  if (!out) {
+    process.stderr.write("arch-bench merge: --out <dir> is required\n");
+    return 64;
+  }
+
+  const mPath = manifestPath ?? resolve(REPO_ROOT, "benchmarks", "manifest.json");
+  let loaded;
+  try {
+    loaded = await loadManifest(mPath);
+  } catch (err) {
+    process.stderr.write(`arch-bench merge: ${err instanceof Error ? err.message : String(err)}\n`);
+    return 65;
+  }
+
+  const inputs = await expandInputPatterns(inputsArg);
+  if (inputs.length === 0) {
+    process.stderr.write("arch-bench merge: no input files matched\n");
+    return 66;
+  }
+  const runs = await Promise.all(inputs.map(async (p) => JSON.parse(await readFile(p, "utf8")) as RunResults));
+  const runId = `merged-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+  const merged = mergeRunResults(runs, loaded.manifest, { runId, createdAt: new Date().toISOString() });
+  const written = await writeRunArtifacts(resolve(out), merged, buildTaskIndex(loaded.manifest));
+  process.stdout.write(`arch-bench: merged ${inputs.length} runs (${merged.results.length} records)\n`);
+  process.stdout.write(`  results: ${written.resultsJson}\n  csv:     ${written.resultsCsv}\n  summary: ${written.summaryMd}\n`);
+  return 0;
+}
+
 function defaultBaselines(suite: "paper" | "smoke", manifestBaselines: readonly BaselineId[]): BaselineId[] {
   if (suite === "smoke") return ["arch-typed-sync", "full-regeneration"];
   return manifestBaselines.length > 0 ? [...manifestBaselines] : [...BASELINE_IDS];
@@ -214,13 +265,113 @@ function defaultSubjects(suite: "paper" | "smoke", all: readonly string[]): stri
   return [...all];
 }
 
-function claudeAvailable(): boolean {
-  try {
-    const r = spawnSync("claude", ["--version"], { stdio: "ignore" });
-    return r.status === 0 || r.status === null ? r.error === undefined : false;
-  } catch {
-    return false;
+function readLiveCliConfig(): LiveCliConfig {
+  return {
+    bins: {
+      "claude-code": process.env["ARCH_BENCH_CLAUDE_BIN"] ?? "claude",
+      "grok-build": process.env["ARCH_BENCH_GROK_BIN"] ?? "grok",
+      "cursor-composer": process.env["ARCH_BENCH_COMPOSER_BIN"] ?? "cursor-agent",
+    },
+    models: {
+      "claude-code": process.env["ARCH_BENCH_CLAUDE_MODEL"] ?? process.env["ARCH_BENCH_MODEL"] ?? "sonnet",
+      "grok-build": process.env["ARCH_BENCH_GROK_MODEL"] ?? "grok-build",
+      "cursor-composer": process.env["ARCH_BENCH_COMPOSER_MODEL"] ?? "composer-2.5",
+    },
+  };
+}
+
+function buildLiveTransports(
+  providers: readonly LiveAgentProvider[],
+  config: LiveCliConfig,
+): Partial<Record<LiveAgentProvider, LiveAgentTransport>> {
+  const transports: Partial<Record<LiveAgentProvider, LiveAgentTransport>> = {};
+  for (const provider of providers) transports[provider] = spawnLiveAgentTransport(config.bins[provider]);
+  return transports;
+}
+
+function providersForBaselines(baselines: readonly BaselineId[]): LiveAgentProvider[] {
+  const providers = new Set<LiveAgentProvider>();
+  for (const baseline of baselines) {
+    const provider = providerForBaseline(baseline);
+    if (provider) providers.add(provider);
   }
+  return [...providers];
+}
+
+function providerForBaseline(baseline: BaselineId): LiveAgentProvider | undefined {
+  if (baseline === "claude-direct-edit" || baseline === "claude-broad-constrained") return "claude-code";
+  if (baseline === "grok-direct-edit" || baseline === "grok-broad-constrained") return "grok-build";
+  if (baseline === "composer-direct-edit" || baseline === "composer-broad-constrained") return "cursor-composer";
+  return undefined;
+}
+
+async function expandInputPatterns(inputsArg: string): Promise<string[]> {
+  const inputs = inputsArg
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const out: string[] = [];
+  for (const input of inputs) {
+    if (input.includes("*")) out.push(...(await expandGlob(input)));
+    else out.push(resolve(input));
+  }
+  return [...new Set(out)].sort();
+}
+
+async function expandGlob(pattern: string): Promise<string[]> {
+  const absPattern = normalizePath(resolve(pattern));
+  const root = globRoot(absPattern);
+  if (!existsSync(root)) return [];
+  const regex = globRegex(absPattern);
+  const files = await walkFiles(root);
+  return files.filter((f) => regex.test(normalizePath(f))).sort();
+}
+
+function globRoot(absPattern: string): string {
+  const idx = absPattern.indexOf("*");
+  if (idx === -1) return dirname(absPattern);
+  const slash = absPattern.lastIndexOf("/", idx);
+  return slash <= 0 ? "/" : absPattern.slice(0, slash);
+}
+
+function globRegex(absPattern: string): RegExp {
+  let out = "";
+  const pattern = normalizePath(absPattern);
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i]!;
+    if (ch === "*" && pattern[i + 1] === "*") {
+      out += ".*";
+      i++;
+    } else if (ch === "*") {
+      out += "[^/]*";
+    } else {
+      out += escapeRegex(ch);
+    }
+  }
+  return new RegExp(`^${out}$`);
+}
+
+async function walkFiles(root: string): Promise<string[]> {
+  const entries = await readdir(root, { withFileTypes: true });
+  const out: string[] = [];
+  for (const entry of entries) {
+    const p = resolve(root, entry.name);
+    if (entry.isDirectory()) out.push(...(await walkFiles(p)));
+    else if (entry.isFile()) out.push(p);
+    else {
+      const s = await stat(p).catch(() => undefined);
+      if (s?.isFile()) out.push(p);
+    }
+  }
+  return out;
+}
+
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/");
+}
+
+function escapeRegex(ch: string): string {
+  return /[.+?^${}()|[\]\\]/.test(ch) ? `\\${ch}` : ch;
 }
 
 main(process.argv.slice(2)).then(

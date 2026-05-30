@@ -5,7 +5,7 @@
  *      run the baseline's evolution → snapshot → churn metrics → oracles →
  *      (drift detect/repair when applicable) → score → BenchResult.
  *
- * Deterministic baselines run once; live-Claude baselines run `repeats` times.
+ * Deterministic baselines run once; live-agent baselines run `repeats` times.
  */
 
 import { mkdir, writeFile } from "node:fs/promises";
@@ -30,6 +30,7 @@ import { applyDriftScripts, measureAndRepairArchDrift } from "./drift.js";
 import { scorePassed, type TaskSignals } from "./score.js";
 import type { BenchResult, DriftRecall } from "../report/results.js";
 import type { ClaudeTransport } from "../llm/claude-runner.js";
+import type { LiveAgentProvider, LiveAgentTransport } from "../llm/agent-runner.js";
 
 export interface SuiteOptions {
   readonly loaded: LoadedManifest;
@@ -43,6 +44,8 @@ export interface SuiteOptions {
   readonly artifactsDir?: string;
   readonly keepWorkspace?: boolean;
   readonly log?: (msg: string) => void;
+  readonly liveTransports?: Partial<Record<LiveAgentProvider, LiveAgentTransport>>;
+  readonly liveModels?: Partial<Record<LiveAgentProvider, string>>;
 }
 
 export async function runSuite(opts: SuiteOptions): Promise<BenchResult[]> {
@@ -52,8 +55,8 @@ export async function runSuite(opts: SuiteOptions): Promise<BenchResult[]> {
 
   for (const subject of subjects) {
     for (const baseline of opts.baselines) {
-      if (isLiveBaseline(baseline) && !opts.claudeTransport) {
-        log(`skip ${subject.id}/${baseline}: live baseline requires a Claude transport`);
+      if (isLiveBaseline(baseline) && !transportForBaseline(opts, baseline)) {
+        log(`skip ${subject.id}/${baseline}: live baseline requires a ${providerForBaseline(baseline)} transport`);
         continue;
       }
       const repeats = isLiveBaseline(baseline) ? Math.max(1, opts.repeats) : 1;
@@ -245,8 +248,23 @@ function buildCtx(
     toSpecSource,
     ...(opts.claudeTransport ? { claudeTransport: opts.claudeTransport } : {}),
     ...(opts.liveModel ? { liveModel: opts.liveModel } : {}),
+    ...(opts.liveTransports ? { liveTransports: opts.liveTransports } : {}),
+    ...(opts.liveModels ? { liveModels: opts.liveModels } : {}),
     log,
   };
+}
+
+function transportForBaseline(opts: SuiteOptions, baseline: BaselineId): LiveAgentTransport | ClaudeTransport | undefined {
+  const provider = providerForBaseline(baseline);
+  if (!provider) return undefined;
+  return opts.liveTransports?.[provider] ?? (provider === "claude-code" ? opts.claudeTransport : undefined);
+}
+
+function providerForBaseline(baseline: BaselineId): LiveAgentProvider | undefined {
+  if (baseline === "claude-direct-edit" || baseline === "claude-broad-constrained") return "claude-code";
+  if (baseline === "grok-direct-edit" || baseline === "grok-broad-constrained") return "grok-build";
+  if (baseline === "composer-direct-edit" || baseline === "composer-broad-constrained") return "cursor-composer";
+  return undefined;
 }
 
 function failedResult(task: BenchTask, baseline: BaselineId, repeat: number, note: string): BenchResult {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateManifest } from "../src/manifest/validate.js";
-import type { BenchManifest, BenchTask } from "../src/manifest/schema.js";
+import { isLiveBaseline, type BenchManifest, type BenchTask } from "../src/manifest/schema.js";
 
 function task(over: Partial<BenchTask> = {}): BenchTask {
   return {
@@ -48,6 +48,25 @@ describe("validateManifest", () => {
     expect(result.ok).toBe(false);
     expect(result.errors.join("\n")).toMatch(/baseline/i);
     expect(result.errors.join("\n")).toMatch(/totally-fake/);
+  });
+
+  it("accepts the multi-model live baselines and marks them live", () => {
+    const baselines = [
+      "arch-typed-sync",
+      "full-regeneration",
+      "claude-direct-edit",
+      "claude-broad-constrained",
+      "grok-direct-edit",
+      "grok-broad-constrained",
+      "composer-direct-edit",
+      "composer-broad-constrained",
+    ] as const;
+    const result = validateManifest({ ...manifest(), baselines });
+    expect(result.ok).toBe(true);
+    expect(isLiveBaseline("claude-direct-edit")).toBe(true);
+    expect(isLiveBaseline("grok-direct-edit")).toBe(true);
+    expect(isLiveBaseline("composer-broad-constrained")).toBe(true);
+    expect(isLiveBaseline("full-regeneration")).toBe(false);
   });
 
   it("rejects duplicate task ids", () => {
