@@ -9,6 +9,7 @@
     { "path": "./packages/arch-generator" },
     { "path": "./packages/arch-agents" },
     { "path": "./packages/arch-verifier" },
-    { "path": "./packages/arch-test-fixtures" }
+    { "path": "./packages/arch-test-fixtures" },
+    { "path": "./packages/arch-bench" }
   ]
 }

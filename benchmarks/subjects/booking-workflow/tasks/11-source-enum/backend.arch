@@ -1,0 +1,31 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Resource {
+  id: id
+  name: string indexed
+  createdAt: timestamp default: now
+}
+
+model Booking {
+  id: id
+  resourceId: Resource
+  guestName: string
+  contactEmail: string default: ""
+  status: enum["held", "confirmed", "cancelled"] default: "held" indexed
+  channel: enum["web", "phone", "walkin"] default: "web" indexed
+  source: enum["direct", "partner", "ota"] default: "direct" indexed
+  guests: int default: 1
+  priority: int default: 0
+  notes: string default: ""
+  confirmed: boolean default: false
+  nights: int default: 1
+  confirmationCode: string default: ""
+  createdAt: timestamp default: now indexed
+}
+
+workflow CreateBooking {
+  trigger api POST /bookings auth: none
+  step validate guestName
+  step insert Booking
+  guarantee create_booking_p95_latency <= 300
+}

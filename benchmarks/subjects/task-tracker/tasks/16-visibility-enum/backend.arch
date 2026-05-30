@@ -1,0 +1,38 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Task {
+  id: id
+  title: string
+  done: boolean default: false
+  priority: int default: 1
+  status: enum["open", "in_progress", "done"] default: "open" indexed
+  archived: boolean default: false
+  description: string default: ""
+  estimateHours: int default: 0
+  severity: enum["low", "medium", "high"] default: "low" indexed
+  dueDate: timestamp default: now
+  labelColor: string default: "gray"
+  completedCount: int default: 0
+  pinned: boolean default: false
+  assignee: string default: ""
+  visibility: enum["private", "team", "public"] default: "private" indexed
+  createdAt: timestamp default: now indexed
+}
+
+policy sanitizeText {
+  body: "strip control characters and trim leading and trailing whitespace"
+}
+
+policy sanitizeAssignee {
+  body: "lowercase and trim the assignee handle"
+}
+
+workflow CreateTask {
+  trigger api POST /tasks auth: none
+  step validate title
+  step insert Task
+  step sanitize description using sanitizeText
+  step sanitize assignee using sanitizeAssignee
+  guarantee createtask_p95_latency <= 300
+  guarantee every_llm_decision_has_audit_log
+}

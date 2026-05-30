@@ -40,6 +40,40 @@ importers:
         specifier: ^1.4.0
         version: 1.6.1(@types/node@20.19.39)
 
+  packages/arch-bench:
+    dependencies:
+      '@arch/agents':
+        specifier: workspace:*
+        version: link:../arch-agents
+      '@arch/generator':
+        specifier: workspace:*
+        version: link:../arch-generator
+      '@arch/ir':
+        specifier: workspace:*
+        version: link:../arch-ir
+      '@arch/language':
+        specifier: workspace:*
+        version: link:../arch-language
+      '@arch/sync':
+        specifier: workspace:*
+        version: link:../arch-sync
+      '@arch/verifier':
+        specifier: workspace:*
+        version: link:../arch-verifier
+    devDependencies:
+      '@types/node':
+        specifier: ^20.11.0
+        version: 20.19.39
+      tsx:
+        specifier: ^4.7.0
+        version: 4.21.0
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.4.0
+        version: 1.6.1(@types/node@20.19.39)
+
   packages/arch-cli:
     dependencies:
       '@arch/agents':

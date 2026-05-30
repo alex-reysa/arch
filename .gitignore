@@ -11,6 +11,12 @@ build/
 coverage/
 .vitest-cache/
 
+# Benchmark run outputs (the committed dataset lives under benchmarks/)
+artifacts/bench/
+# Scratch files written by the dataset-authoring workflow (merged into manifest.json, then removed)
+benchmarks/subjects/*/_tasks.json
+benchmarks/subjects/*/_selftest.json
+
 # Editor
 .vscode/
 .idea/

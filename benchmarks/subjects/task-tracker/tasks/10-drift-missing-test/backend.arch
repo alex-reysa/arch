@@ -1,0 +1,27 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Task {
+  id: id
+  title: string
+  done: boolean default: false
+  priority: int default: 1
+  status: enum["open", "in_progress", "done"] default: "open" indexed
+  archived: boolean default: false
+  description: string default: ""
+  estimateHours: int default: 0
+  severity: enum["low", "medium", "high"] default: "low" indexed
+  dueDate: timestamp default: now
+  createdAt: timestamp default: now indexed
+}
+
+policy sanitizeText {
+  body: "strip control characters and trim leading and trailing whitespace"
+}
+
+workflow CreateTask {
+  trigger api POST /tasks auth: none
+  step validate title
+  step insert Task
+  step sanitize description using sanitizeText
+  guarantee createtask_p95_latency <= 300
+}

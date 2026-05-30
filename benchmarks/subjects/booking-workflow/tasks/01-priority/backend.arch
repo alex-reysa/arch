@@ -1,0 +1,23 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Resource {
+  id: id
+  name: string indexed
+  createdAt: timestamp default: now
+}
+
+model Booking {
+  id: id
+  resourceId: Resource
+  guestName: string
+  status: enum["held", "confirmed", "cancelled"] default: "held" indexed
+  guests: int default: 1
+  priority: int default: 0
+  createdAt: timestamp default: now indexed
+}
+
+workflow CreateBooking {
+  trigger api POST /bookings auth: none
+  step validate guestName
+  step insert Booking
+}

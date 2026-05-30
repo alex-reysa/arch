@@ -1,0 +1,30 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Warehouse {
+  id: id
+  name: string indexed
+  createdAt: timestamp default: now
+}
+
+model Item {
+  id: id
+  warehouseId: Warehouse
+  sku: string indexed
+  status: enum["in_stock", "reserved", "sold"] default: "in_stock"
+  quantity: int default: 0
+  condition: enum["new", "used", "refurbished"] default: "new" indexed
+  reorderLevel: int default: 0
+  barcode: string default: ""
+  active: boolean default: true
+  lastCountedAt: timestamp default: now
+  notes: string default: ""
+  weightGrams: int default: 0
+  createdAt: timestamp default: now indexed
+}
+
+workflow CreateItem {
+  trigger api POST /items auth: none
+  step validate sku
+  step insert Item
+  guarantee create_item_p95_latency <= 300
+}

@@ -15,7 +15,10 @@
     "lint": "pnpm -r --filter './packages/*' lint",
     "e2e": "tsx scripts/run-e2e.ts",
     "examples-e2e": "tsx scripts/run-examples-e2e.ts",
-    "update-goldens": "tsx scripts/update-goldens.ts"
+    "update-goldens": "tsx scripts/update-goldens.ts",
+    "bench:smoke": "tsx packages/arch-bench/src/main.ts run --suite smoke",
+    "bench:paper": "tsx packages/arch-bench/src/main.ts run --suite paper",
+    "bench:summarize": "tsx packages/arch-bench/src/main.ts summarize --input"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

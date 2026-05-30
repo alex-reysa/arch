@@ -1,0 +1,2432 @@
+{
+  "schema_version": "arch.bench.manifest.v1",
+  "baselines": [
+    "arch-typed-sync",
+    "full-regeneration",
+    "claude-direct-edit",
+    "claude-broad-constrained"
+  ],
+  "subjects": [
+    {
+      "id": "social-feed",
+      "title": "Social Feed",
+      "baseSpec": "subjects/social-feed/v00/backend.arch"
+    },
+    {
+      "id": "task-tracker",
+      "title": "Task Tracker",
+      "baseSpec": "subjects/task-tracker/v00/backend.arch"
+    },
+    {
+      "id": "inventory",
+      "title": "Inventory",
+      "baseSpec": "subjects/inventory/v00/backend.arch"
+    },
+    {
+      "id": "billing-approval",
+      "title": "Billing Approval",
+      "baseSpec": "subjects/billing-approval/v00/backend.arch"
+    },
+    {
+      "id": "booking-workflow",
+      "title": "Booking Workflow",
+      "baseSpec": "subjects/booking-workflow/v00/backend.arch"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "social-feed-01",
+      "subject": "social-feed",
+      "order": 1,
+      "kind": "enum_change",
+      "fromSpec": "subjects/social-feed/v00/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/01-visibility-enum/backend.arch",
+      "intent": "Add a post visibility enum (public/private/followers) defaulting to public, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/01-visibility-enum/oracles/visibility.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-02",
+      "subject": "social-feed",
+      "order": 2,
+      "kind": "additive_field",
+      "fromSpec": "subjects/social-feed/tasks/01-visibility-enum/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/02-pinned-field/backend.arch",
+      "intent": "Add a boolean `pinned` flag to Post defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/02-pinned-field/oracles/pinned.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-03",
+      "subject": "social-feed",
+      "order": 3,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/social-feed/tasks/02-pinned-field/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/03-remove-pinned/backend.arch",
+      "intent": "Remove the `pinned` field from Post (a destructive, data-losing change that must be blocked without confirmation).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-04",
+      "subject": "social-feed",
+      "order": 4,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/social-feed/tasks/02-pinned-field/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/04-drift-missing-test/backend.arch",
+      "intent": "A generated model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/social-feed/tasks/04-drift-missing-test/drift/delete-post-model-test.ts"
+      ]
+    },
+    {
+      "id": "social-feed-05",
+      "subject": "social-feed",
+      "order": 5,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/social-feed/tasks/02-pinned-field/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/05-human-owned-edit/backend.arch",
+      "intent": "Add an `editedAt` timestamp to Post while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/05-human-owned-edit/oracles/human-owned.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/PostTagger.ts",
+        "content": "export function tagPost(body: string): string {\n  return body.toUpperCase();\n}\n"
+      }
+    },
+    {
+      "id": "social-feed-06",
+      "subject": "social-feed",
+      "order": 6,
+      "kind": "additive_field",
+      "fromSpec": "subjects/social-feed/tasks/05-human-owned-edit/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/06-like-count/backend.arch",
+      "intent": "Add an integer `likeCount` to Post defaulting to 0.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/06-like-count/oracles/like-count.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-07",
+      "subject": "social-feed",
+      "order": 7,
+      "kind": "enum_change",
+      "fromSpec": "subjects/social-feed/tasks/06-like-count/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/07-post-kind-enum/backend.arch",
+      "intent": "Add a post `kind` enum (text/image/video) defaulting to text, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/07-post-kind-enum/oracles/kind.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-08",
+      "subject": "social-feed",
+      "order": 8,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/social-feed/tasks/07-post-kind-enum/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/08-fanout-latency/backend.arch",
+      "intent": "Add a feed-fanout p95 latency guarantee (<= 300ms) to the CreatePost workflow.",
+      "expectedDiffTypes": [
+        "guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreatePost.ts",
+        "tests/workflows/CreatePost.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-09",
+      "subject": "social-feed",
+      "order": 9,
+      "kind": "additive_field",
+      "fromSpec": "subjects/social-feed/tasks/08-fanout-latency/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/09-title-validate/backend.arch",
+      "intent": "Add a `title` string field to Post defaulting to an empty string.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/09-title-validate/oracles/title.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-10",
+      "subject": "social-feed",
+      "order": 10,
+      "kind": "additive_field",
+      "fromSpec": "subjects/social-feed/tasks/09-title-validate/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/10-archived-field/backend.arch",
+      "intent": "Add a boolean `archived` flag to Post defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/10-archived-field/oracles/archived.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-11",
+      "subject": "social-feed",
+      "order": 11,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/social-feed/tasks/10-archived-field/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/11-remove-archived/backend.arch",
+      "intent": "Remove the `archived` field from Post (a destructive, data-losing change that must be blocked).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-12",
+      "subject": "social-feed",
+      "order": 12,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/social-feed/tasks/10-archived-field/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/12-view-count-migration/backend.arch",
+      "intent": "Add an integer `viewCount` to Post defaulting to 0; existing rows must be preserved through the migration.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/12-view-count-migration/oracles/view-count.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/social-feed/tasks/12-view-count-migration/db-check.ts"
+    },
+    {
+      "id": "social-feed-13",
+      "subject": "social-feed",
+      "order": 13,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/social-feed/tasks/12-view-count-migration/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/13-slug-human-owned/backend.arch",
+      "intent": "Add a `slug` string to Post (default \"\") while preserving a human-owned slugify helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/13-slug-human-owned/oracles/slug-human-owned.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/Slugifier.ts",
+        "content": "export function slugify(input: string): string {\n  return input.toLowerCase().replace(/\\s+/g, \"-\");\n}\n"
+      }
+    },
+    {
+      "id": "social-feed-14",
+      "subject": "social-feed",
+      "order": 14,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/social-feed/tasks/13-slug-human-owned/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/14-drift-missing-post-test/backend.arch",
+      "intent": "The generated Post model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/social-feed/tasks/14-drift-missing-post-test/drift/delete-post-model-test.ts"
+      ]
+    },
+    {
+      "id": "social-feed-15",
+      "subject": "social-feed",
+      "order": 15,
+      "kind": "additive_field",
+      "fromSpec": "subjects/social-feed/tasks/13-slug-human-owned/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/15-user-displayname/backend.arch",
+      "intent": "Add a `displayName` string to User defaulting to \"\".",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/User.ts",
+        "src/runtime/db.ts",
+        "src/validators/User.ts",
+        "tests/models/User.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/15-user-displayname/oracles/display-name.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-16",
+      "subject": "social-feed",
+      "order": 16,
+      "kind": "enum_change",
+      "fromSpec": "subjects/social-feed/tasks/15-user-displayname/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/16-user-role-enum/backend.arch",
+      "intent": "Add a `role` enum (member/admin/moderator) to User defaulting to member, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/User.ts",
+        "src/runtime/db.ts",
+        "src/validators/User.ts",
+        "tests/models/User.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/16-user-role-enum/oracles/role.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-17",
+      "subject": "social-feed",
+      "order": 17,
+      "kind": "additive_field",
+      "fromSpec": "subjects/social-feed/tasks/16-user-role-enum/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/17-summary-validate/backend.arch",
+      "intent": "Add a `summary` string field to Post defaulting to an empty string.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/social-feed/tasks/17-summary-validate/oracles/summary.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-18",
+      "subject": "social-feed",
+      "order": 18,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/social-feed/tasks/17-summary-validate/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/18-remove-like-count/backend.arch",
+      "intent": "Remove the `likeCount` field from Post (a destructive, data-losing change that must be blocked).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Post.ts",
+        "src/runtime/db.ts",
+        "src/validators/Post.ts",
+        "tests/models/Post.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-19",
+      "subject": "social-feed",
+      "order": 19,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/social-feed/tasks/17-summary-validate/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/19-cache-warm-latency/backend.arch",
+      "intent": "Add a cache-warm p95 latency guarantee (<= 400ms) to the CreatePost workflow.",
+      "expectedDiffTypes": [
+        "guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreatePost.ts",
+        "tests/workflows/CreatePost.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "social-feed-20",
+      "subject": "social-feed",
+      "order": 20,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/social-feed/tasks/19-cache-warm-latency/backend.arch",
+      "toSpec": "subjects/social-feed/tasks/20-drift-missing-user-test/backend.arch",
+      "intent": "The generated User model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/User.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/social-feed/tasks/20-drift-missing-user-test/drift/delete-user-model-test.ts"
+      ]
+    },
+    {
+      "id": "task-tracker-01",
+      "subject": "task-tracker",
+      "order": 1,
+      "kind": "additive_field",
+      "fromSpec": "subjects/task-tracker/v00/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/01-priority-field/backend.arch",
+      "intent": "Add an integer priority field to Task defaulting to 1.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/01-priority-field/oracles/priority.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-02",
+      "subject": "task-tracker",
+      "order": 2,
+      "kind": "enum_change",
+      "fromSpec": "subjects/task-tracker/tasks/01-priority-field/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/02-status-enum/backend.arch",
+      "intent": "Add a Task status enum (open/in_progress/done) defaulting to open, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/02-status-enum/oracles/status.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-03",
+      "subject": "task-tracker",
+      "order": 3,
+      "kind": "additive_field",
+      "fromSpec": "subjects/task-tracker/tasks/02-status-enum/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/03-archived-field/backend.arch",
+      "intent": "Add a boolean `archived` flag to Task defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/03-archived-field/oracles/archived.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-04",
+      "subject": "task-tracker",
+      "order": 4,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/task-tracker/tasks/03-archived-field/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/04-latency-guarantee/backend.arch",
+      "intent": "Add a p95 latency guarantee (<= 300ms) to the CreateTask workflow.",
+      "expectedDiffTypes": [
+        "workflow_guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreateTask.ts",
+        "tests/guarantees/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-05",
+      "subject": "task-tracker",
+      "order": 5,
+      "kind": "workflow_edit",
+      "fromSpec": "subjects/task-tracker/tasks/04-latency-guarantee/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/05-description-validate/backend.arch",
+      "intent": "Add a `description` string field (default \"\") to Task and sanitize it in the CreateTask workflow via a new policy.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "policy_added",
+        "workflow_step_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts",
+        "src/policies/sanitizeText.ts",
+        "src/workflows/CreateTask.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/05-description-validate/oracles/description.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-06",
+      "subject": "task-tracker",
+      "order": 6,
+      "kind": "additive_field",
+      "fromSpec": "subjects/task-tracker/tasks/05-description-validate/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/06-estimate-field/backend.arch",
+      "intent": "Add an integer `estimateHours` to Task defaulting to 0.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/06-estimate-field/oracles/estimate.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-07",
+      "subject": "task-tracker",
+      "order": 7,
+      "kind": "enum_change",
+      "fromSpec": "subjects/task-tracker/tasks/06-estimate-field/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/07-severity-enum/backend.arch",
+      "intent": "Add a `severity` enum (low/medium/high) to Task defaulting to low, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/07-severity-enum/oracles/severity.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-08",
+      "subject": "task-tracker",
+      "order": 8,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/task-tracker/tasks/07-severity-enum/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/08-remove-archived/backend.arch",
+      "intent": "Remove the `archived` field from Task (a destructive, data-losing change that must be blocked).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-09",
+      "subject": "task-tracker",
+      "order": 9,
+      "kind": "additive_field",
+      "fromSpec": "subjects/task-tracker/tasks/07-severity-enum/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/09-due-date/backend.arch",
+      "intent": "Add a `dueDate` timestamp to Task defaulting to now.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/09-due-date/oracles/due-date.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-10",
+      "subject": "task-tracker",
+      "order": 10,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/task-tracker/tasks/09-due-date/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/10-drift-missing-test/backend.arch",
+      "intent": "A generated model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/task-tracker/tasks/10-drift-missing-test/drift/delete-task-model-test.ts"
+      ]
+    },
+    {
+      "id": "task-tracker-11",
+      "subject": "task-tracker",
+      "order": 11,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/task-tracker/tasks/09-due-date/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/11-human-owned-edit/backend.arch",
+      "intent": "Add a `labelColor` string (default \"gray\") to Task while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/11-human-owned-edit/oracles/human-owned.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/TaskFormatter.ts",
+        "content": "export function formatLabel(label: string): string {\n  return `[${label}]`;\n}\n"
+      }
+    },
+    {
+      "id": "task-tracker-12",
+      "subject": "task-tracker",
+      "order": 12,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/task-tracker/tasks/11-human-owned-edit/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/12-migration-completed-count/backend.arch",
+      "intent": "Add an integer `completedCount` (default 0) to Task; existing rows must survive the migration with the default.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/12-migration-completed-count/oracles/completed-count.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/task-tracker/tasks/12-migration-completed-count/db-check.ts"
+    },
+    {
+      "id": "task-tracker-13",
+      "subject": "task-tracker",
+      "order": 13,
+      "kind": "additive_field",
+      "fromSpec": "subjects/task-tracker/tasks/12-migration-completed-count/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/13-pinned-field/backend.arch",
+      "intent": "Add a boolean `pinned` flag to Task defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/13-pinned-field/oracles/pinned.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-14",
+      "subject": "task-tracker",
+      "order": 14,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/task-tracker/tasks/13-pinned-field/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/14-audit-guarantee/backend.arch",
+      "intent": "Add an audit-log guarantee (every_llm_decision_has_audit_log) to the CreateTask workflow.",
+      "expectedDiffTypes": [
+        "workflow_guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreateTask.ts",
+        "tests/guarantees/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-15",
+      "subject": "task-tracker",
+      "order": 15,
+      "kind": "workflow_edit",
+      "fromSpec": "subjects/task-tracker/tasks/14-audit-guarantee/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/15-assignee-validate/backend.arch",
+      "intent": "Add an `assignee` string field (default \"\") to Task and sanitize it in the CreateTask workflow via a new policy.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "policy_added",
+        "workflow_step_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts",
+        "src/policies/sanitizeAssignee.ts",
+        "src/workflows/CreateTask.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/15-assignee-validate/oracles/assignee.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-16",
+      "subject": "task-tracker",
+      "order": 16,
+      "kind": "enum_change",
+      "fromSpec": "subjects/task-tracker/tasks/15-assignee-validate/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/16-visibility-enum/backend.arch",
+      "intent": "Add a `visibility` enum (private/team/public) to Task defaulting to private, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/16-visibility-enum/oracles/visibility.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-17",
+      "subject": "task-tracker",
+      "order": 17,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/task-tracker/tasks/16-visibility-enum/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/17-remove-pinned/backend.arch",
+      "intent": "Remove the `pinned` field from Task (a destructive, data-losing change that must be blocked).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "task-tracker-18",
+      "subject": "task-tracker",
+      "order": 18,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/task-tracker/tasks/16-visibility-enum/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/18-drift-missing-test-2/backend.arch",
+      "intent": "A generated model test is deleted out-of-band again; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/task-tracker/tasks/18-drift-missing-test-2/drift/delete-task-model-test.ts"
+      ]
+    },
+    {
+      "id": "task-tracker-19",
+      "subject": "task-tracker",
+      "order": 19,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/task-tracker/tasks/16-visibility-enum/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/19-migration-reopen-count/backend.arch",
+      "intent": "Add an integer `reopenCount` (default 0) to Task; existing rows must survive the migration with the default.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/19-migration-reopen-count/oracles/reopen-count.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/task-tracker/tasks/19-migration-reopen-count/db-check.ts"
+    },
+    {
+      "id": "task-tracker-20",
+      "subject": "task-tracker",
+      "order": 20,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/task-tracker/tasks/19-migration-reopen-count/backend.arch",
+      "toSpec": "subjects/task-tracker/tasks/20-human-owned-slug/backend.arch",
+      "intent": "Add a `slug` string (default \"\") to Task while preserving a second human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Task.ts",
+        "src/runtime/db.ts",
+        "src/validators/Task.ts",
+        "tests/models/Task.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/task-tracker/tasks/20-human-owned-slug/oracles/human-owned-slug.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/SlugBuilder.ts",
+        "content": "export function buildSlug(title: string): string {\n  return title.toLowerCase().trim().replace(/\\s+/g, \"-\");\n}\n"
+      }
+    },
+    {
+      "id": "inventory-01",
+      "subject": "inventory",
+      "order": 1,
+      "kind": "enum_change",
+      "fromSpec": "subjects/inventory/v00/backend.arch",
+      "toSpec": "subjects/inventory/tasks/01-condition-enum/backend.arch",
+      "intent": "Add a `condition` enum (new/used/refurbished) to Item defaulting to new, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/01-condition-enum/oracles/condition.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-02",
+      "subject": "inventory",
+      "order": 2,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/01-condition-enum/backend.arch",
+      "toSpec": "subjects/inventory/tasks/02-reorder-level/backend.arch",
+      "intent": "Add an integer `reorderLevel` to Item defaulting to 0.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/02-reorder-level/oracles/reorder-level.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-03",
+      "subject": "inventory",
+      "order": 3,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/inventory/tasks/02-reorder-level/backend.arch",
+      "toSpec": "subjects/inventory/tasks/03-latency-guarantee/backend.arch",
+      "intent": "Add a p95 latency guarantee (<= 300ms) to the CreateItem workflow.",
+      "expectedDiffTypes": [
+        "workflow_guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreateItem.ts",
+        "tests/guarantees/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-04",
+      "subject": "inventory",
+      "order": 4,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/03-latency-guarantee/backend.arch",
+      "toSpec": "subjects/inventory/tasks/04-barcode-validate/backend.arch",
+      "intent": "Add a `barcode` string field to Item defaulting to \"\".",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/04-barcode-validate/oracles/barcode.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-05",
+      "subject": "inventory",
+      "order": 5,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/04-barcode-validate/backend.arch",
+      "toSpec": "subjects/inventory/tasks/05-active-flag/backend.arch",
+      "intent": "Add a boolean `active` flag to Item defaulting to true.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/05-active-flag/oracles/active.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-06",
+      "subject": "inventory",
+      "order": 6,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/inventory/tasks/05-active-flag/backend.arch",
+      "toSpec": "subjects/inventory/tasks/06-last-counted/backend.arch",
+      "intent": "Add a `lastCountedAt` timestamp to Item while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/06-last-counted/oracles/last-counted.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/ItemAuditor.ts",
+        "content": "export function auditSku(sku: string): string {\n  return `AUDIT:${sku}`;\n}\n"
+      }
+    },
+    {
+      "id": "inventory-07",
+      "subject": "inventory",
+      "order": 7,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/inventory/tasks/06-last-counted/backend.arch",
+      "toSpec": "subjects/inventory/tasks/07-remove-reorder/backend.arch",
+      "intent": "Remove the `reorderLevel` field from Item (a destructive, data-losing change that must be blocked).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-08",
+      "subject": "inventory",
+      "order": 8,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/inventory/tasks/06-last-counted/backend.arch",
+      "toSpec": "subjects/inventory/tasks/08-drift-item-test/backend.arch",
+      "intent": "A generated Item model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/inventory/tasks/08-drift-item-test/drift/delete-item-model-test.ts"
+      ]
+    },
+    {
+      "id": "inventory-09",
+      "subject": "inventory",
+      "order": 9,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/inventory/tasks/08-drift-item-test/backend.arch",
+      "toSpec": "subjects/inventory/tasks/09-notes-migration/backend.arch",
+      "intent": "Add a `notes` string field to Item (default \"\"); pre-existing rows must be preserved.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/09-notes-migration/oracles/notes.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/inventory/tasks/09-notes-migration/db-check.ts"
+    },
+    {
+      "id": "inventory-10",
+      "subject": "inventory",
+      "order": 10,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/09-notes-migration/backend.arch",
+      "toSpec": "subjects/inventory/tasks/10-weight-field/backend.arch",
+      "intent": "Add an integer `weightGrams` to Item defaulting to 0.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/10-weight-field/oracles/weight.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-11",
+      "subject": "inventory",
+      "order": 11,
+      "kind": "enum_change",
+      "fromSpec": "subjects/inventory/tasks/10-weight-field/backend.arch",
+      "toSpec": "subjects/inventory/tasks/11-category-enum/backend.arch",
+      "intent": "Add a `category` enum (raw/finished/packaging) to Item defaulting to raw, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/11-category-enum/oracles/category.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-12",
+      "subject": "inventory",
+      "order": 12,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/11-category-enum/backend.arch",
+      "toSpec": "subjects/inventory/tasks/12-warehouse-region/backend.arch",
+      "intent": "Add a `region` string field to Warehouse defaulting to \"\".",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Warehouse.ts",
+        "src/runtime/db.ts",
+        "src/validators/Warehouse.ts",
+        "tests/models/Warehouse.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/12-warehouse-region/oracles/region.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-13",
+      "subject": "inventory",
+      "order": 13,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/inventory/tasks/12-warehouse-region/backend.arch",
+      "toSpec": "subjects/inventory/tasks/13-consistency-guarantee/backend.arch",
+      "intent": "Add a second p95 latency guarantee (item_persist_p95_latency <= 500) to the CreateItem workflow.",
+      "expectedDiffTypes": [
+        "workflow_guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreateItem.ts",
+        "tests/guarantees/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-14",
+      "subject": "inventory",
+      "order": 14,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/13-consistency-guarantee/backend.arch",
+      "toSpec": "subjects/inventory/tasks/14-bin-location/backend.arch",
+      "intent": "Add a `binLocation` string field to Item defaulting to \"\".",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/14-bin-location/oracles/bin-location.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-15",
+      "subject": "inventory",
+      "order": 15,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/14-bin-location/backend.arch",
+      "toSpec": "subjects/inventory/tasks/15-archived-flag/backend.arch",
+      "intent": "Add a boolean `archived` flag to Item defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/15-archived-flag/oracles/archived.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-16",
+      "subject": "inventory",
+      "order": 16,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/inventory/tasks/15-archived-flag/backend.arch",
+      "toSpec": "subjects/inventory/tasks/16-remove-weight/backend.arch",
+      "intent": "Remove the `weightGrams` field from Item (a destructive change that must be blocked).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "inventory-17",
+      "subject": "inventory",
+      "order": 17,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/inventory/tasks/15-archived-flag/backend.arch",
+      "toSpec": "subjects/inventory/tasks/17-drift-warehouse-test/backend.arch",
+      "intent": "A generated Warehouse model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Warehouse.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/inventory/tasks/17-drift-warehouse-test/drift/delete-warehouse-model-test.ts"
+      ]
+    },
+    {
+      "id": "inventory-18",
+      "subject": "inventory",
+      "order": 18,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/inventory/tasks/15-archived-flag/backend.arch",
+      "toSpec": "subjects/inventory/tasks/18-updated-at/backend.arch",
+      "intent": "Add an `updatedAt` timestamp to Item while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/18-updated-at/oracles/updated-at.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/ItemReporter.ts",
+        "content": "export function describeItem(name: string): string {\n  return `item:${name}`;\n}\n"
+      }
+    },
+    {
+      "id": "inventory-19",
+      "subject": "inventory",
+      "order": 19,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/inventory/tasks/18-updated-at/backend.arch",
+      "toSpec": "subjects/inventory/tasks/19-unit-price-migration/backend.arch",
+      "intent": "Add a `unitPrice` integer field to Item (default 0); pre-existing rows must be preserved.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/19-unit-price-migration/oracles/unit-price.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/inventory/tasks/19-unit-price-migration/db-check.ts"
+    },
+    {
+      "id": "inventory-20",
+      "subject": "inventory",
+      "order": 20,
+      "kind": "additive_field",
+      "fromSpec": "subjects/inventory/tasks/19-unit-price-migration/backend.arch",
+      "toSpec": "subjects/inventory/tasks/20-discontinued-flag/backend.arch",
+      "intent": "Add a boolean `discontinued` flag to Item defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Item.ts",
+        "src/runtime/db.ts",
+        "src/validators/Item.ts",
+        "tests/models/Item.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/inventory/tasks/20-discontinued-flag/oracles/discontinued.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-01",
+      "subject": "billing-approval",
+      "order": 1,
+      "kind": "additive_field",
+      "fromSpec": "subjects/billing-approval/v00/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/01-due-date/backend.arch",
+      "intent": "Add a `dueDate` timestamp to Invoice defaulting to now.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/01-due-date/oracles/due-date.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-02",
+      "subject": "billing-approval",
+      "order": 2,
+      "kind": "enum_change",
+      "fromSpec": "subjects/billing-approval/tasks/01-due-date/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/02-approval-state/backend.arch",
+      "intent": "Add an `approvalState` enum (pending/approved/rejected) to Invoice defaulting to pending, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/02-approval-state/oracles/approval-state.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-03",
+      "subject": "billing-approval",
+      "order": 3,
+      "kind": "additive_field",
+      "fromSpec": "subjects/billing-approval/tasks/02-approval-state/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/03-notes-field/backend.arch",
+      "intent": "Add a free-text `notes` string field to Invoice defaulting to empty.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/03-notes-field/oracles/notes.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-04",
+      "subject": "billing-approval",
+      "order": 4,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/billing-approval/tasks/03-notes-field/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/04-submit-latency/backend.arch",
+      "intent": "Add a p95 latency guarantee (<= 300ms) to the SubmitInvoice workflow.",
+      "expectedDiffTypes": [
+        "guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/SubmitInvoice.ts",
+        "tests/guarantees/",
+        "tests/workflows/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-05",
+      "subject": "billing-approval",
+      "order": 5,
+      "kind": "additive_field",
+      "fromSpec": "subjects/billing-approval/tasks/04-submit-latency/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/05-approved-flag/backend.arch",
+      "intent": "Add a boolean `approvedFlag` to Invoice defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/05-approved-flag/oracles/approved-flag.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-06",
+      "subject": "billing-approval",
+      "order": 6,
+      "kind": "additive_field",
+      "fromSpec": "subjects/billing-approval/tasks/05-approved-flag/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/06-submitted-by/backend.arch",
+      "intent": "Add a `submittedBy` string field to Invoice defaulting to empty.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/06-submitted-by/oracles/submitted-by.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-07",
+      "subject": "billing-approval",
+      "order": 7,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/billing-approval/tasks/06-submitted-by/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/07-remove-notes/backend.arch",
+      "intent": "Remove the `notes` field from Invoice (a destructive, data-losing change that must be blocked without confirmation).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-08",
+      "subject": "billing-approval",
+      "order": 8,
+      "kind": "enum_change",
+      "fromSpec": "subjects/billing-approval/tasks/06-submitted-by/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/08-currency-enum/backend.arch",
+      "intent": "Add a `currency` enum (usd/eur/gbp) to Invoice defaulting to usd, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/08-currency-enum/oracles/currency.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-09",
+      "subject": "billing-approval",
+      "order": 9,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/billing-approval/tasks/08-currency-enum/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/09-drift-invoice-test/backend.arch",
+      "intent": "A generated Invoice model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Invoice.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/billing-approval/tasks/09-drift-invoice-test/drift/delete-invoice-model-test.ts"
+      ]
+    },
+    {
+      "id": "billing-approval-10",
+      "subject": "billing-approval",
+      "order": 10,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/billing-approval/tasks/08-currency-enum/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/10-reviewed-at/backend.arch",
+      "intent": "Add a `reviewedAt` timestamp to Invoice defaulting to now; existing rows must be preserved across the migration.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/10-reviewed-at/oracles/reviewed-at.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/billing-approval/tasks/10-reviewed-at/db-check.ts"
+    },
+    {
+      "id": "billing-approval-11",
+      "subject": "billing-approval",
+      "order": 11,
+      "kind": "additive_field",
+      "fromSpec": "subjects/billing-approval/tasks/10-reviewed-at/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/11-priority-int/backend.arch",
+      "intent": "Add an integer `priority` to Invoice defaulting to 0.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/11-priority-int/oracles/priority.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-12",
+      "subject": "billing-approval",
+      "order": 12,
+      "kind": "additive_field",
+      "fromSpec": "subjects/billing-approval/tasks/11-priority-int/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/12-gl-code/backend.arch",
+      "intent": "Add a `glCode` string field to Invoice defaulting to empty.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/12-gl-code/oracles/gl-code.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-13",
+      "subject": "billing-approval",
+      "order": 13,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/billing-approval/tasks/12-gl-code/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/13-escalated-flag/backend.arch",
+      "intent": "Add an `escalated` boolean to Invoice while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/13-escalated-flag/oracles/human-owned.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/InvoiceEscalation.ts",
+        "content": "export function escalationLabel(reason: string): string {\n  return `ESCALATED:${reason}`;\n}\n"
+      }
+    },
+    {
+      "id": "billing-approval-14",
+      "subject": "billing-approval",
+      "order": 14,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/billing-approval/tasks/13-escalated-flag/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/14-remove-priority/backend.arch",
+      "intent": "Remove the `priority` field from Invoice (a destructive, data-losing change that must be blocked without confirmation).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-15",
+      "subject": "billing-approval",
+      "order": 15,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/billing-approval/tasks/13-escalated-flag/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/15-tighten-latency/backend.arch",
+      "intent": "Tighten the SubmitInvoice p95 latency guarantee from 300ms to 250ms.",
+      "expectedDiffTypes": [
+        "guarantee_changed"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/SubmitInvoice.ts",
+        "tests/guarantees/",
+        "tests/workflows/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-16",
+      "subject": "billing-approval",
+      "order": 16,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/billing-approval/tasks/15-tighten-latency/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/16-drift-vendor-test/backend.arch",
+      "intent": "A generated Vendor model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Vendor.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/billing-approval/tasks/16-drift-vendor-test/drift/delete-vendor-model-test.ts"
+      ]
+    },
+    {
+      "id": "billing-approval-17",
+      "subject": "billing-approval",
+      "order": 17,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/billing-approval/tasks/15-tighten-latency/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/17-tax-cents/backend.arch",
+      "intent": "Add an integer `taxCents` to Invoice defaulting to 0; existing rows must be preserved across the migration.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/17-tax-cents/oracles/tax-cents.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/billing-approval/tasks/17-tax-cents/db-check.ts"
+    },
+    {
+      "id": "billing-approval-18",
+      "subject": "billing-approval",
+      "order": 18,
+      "kind": "additive_field",
+      "fromSpec": "subjects/billing-approval/tasks/17-tax-cents/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/18-cost-center/backend.arch",
+      "intent": "Add a `costCenter` string field to Invoice defaulting to empty.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/18-cost-center/oracles/cost-center.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "billing-approval-19",
+      "subject": "billing-approval",
+      "order": 19,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/billing-approval/tasks/18-cost-center/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/19-archived-flag/backend.arch",
+      "intent": "Add an `archived` boolean to Invoice while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/19-archived-flag/oracles/human-owned.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/InvoiceArchive.ts",
+        "content": "export function archiveTag(reference: string): string {\n  return `archived/${reference}`;\n}\n"
+      }
+    },
+    {
+      "id": "billing-approval-20",
+      "subject": "billing-approval",
+      "order": 20,
+      "kind": "enum_change",
+      "fromSpec": "subjects/billing-approval/tasks/19-archived-flag/backend.arch",
+      "toSpec": "subjects/billing-approval/tasks/20-payment-method/backend.arch",
+      "intent": "Add a `paymentMethod` enum (ach/wire/check) to Invoice defaulting to ach, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Invoice.ts",
+        "src/runtime/db.ts",
+        "src/validators/Invoice.ts",
+        "tests/models/Invoice.test.ts",
+        "src/routes/SubmitInvoice.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/billing-approval/tasks/20-payment-method/oracles/payment-method.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-01",
+      "subject": "booking-workflow",
+      "order": 1,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/v00/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/01-priority/backend.arch",
+      "intent": "Add an integer `priority` to Booking defaulting to 0.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/01-priority/oracles/priority.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-02",
+      "subject": "booking-workflow",
+      "order": 2,
+      "kind": "enum_change",
+      "fromSpec": "subjects/booking-workflow/tasks/01-priority/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/02-channel-enum/backend.arch",
+      "intent": "Add a booking channel enum (web/phone/walkin) defaulting to web, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/02-channel-enum/oracles/channel.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-03",
+      "subject": "booking-workflow",
+      "order": 3,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/tasks/02-channel-enum/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/03-notes-field/backend.arch",
+      "intent": "Add a free-text `notes` string to Booking defaulting to empty string.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/03-notes-field/oracles/notes.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-04",
+      "subject": "booking-workflow",
+      "order": 4,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/booking-workflow/tasks/03-notes-field/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/04-latency-guarantee/backend.arch",
+      "intent": "Add a p95 latency guarantee (<= 300ms) to the CreateBooking workflow.",
+      "expectedDiffTypes": [
+        "workflow_guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreateBooking.ts",
+        "tests/guarantees/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-05",
+      "subject": "booking-workflow",
+      "order": 5,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/tasks/04-latency-guarantee/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/05-validate-email/backend.arch",
+      "intent": "Add a `contactEmail` string to Booking defaulting to empty string.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/05-validate-email/oracles/contact-email.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-06",
+      "subject": "booking-workflow",
+      "order": 6,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/tasks/05-validate-email/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/06-confirmed-field/backend.arch",
+      "intent": "Add a boolean `confirmed` flag to Booking defaulting to false.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/06-confirmed-field/oracles/confirmed.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-07",
+      "subject": "booking-workflow",
+      "order": 7,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/booking-workflow/tasks/06-confirmed-field/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/07-remove-confirmed/backend.arch",
+      "intent": "Remove the `confirmed` field from Booking (a destructive, data-losing change that must be blocked without confirmation).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-08",
+      "subject": "booking-workflow",
+      "order": 8,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/tasks/06-confirmed-field/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/08-nights-field/backend.arch",
+      "intent": "Add an integer `nights` to Booking defaulting to 1.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/08-nights-field/oracles/nights.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-09",
+      "subject": "booking-workflow",
+      "order": 9,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/booking-workflow/tasks/08-nights-field/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/09-drift-booking-test/backend.arch",
+      "intent": "A generated Booking model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/booking-workflow/tasks/09-drift-booking-test/drift/delete-booking-model-test.ts"
+      ]
+    },
+    {
+      "id": "booking-workflow-10",
+      "subject": "booking-workflow",
+      "order": 10,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/booking-workflow/tasks/08-nights-field/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/10-human-owned-code/backend.arch",
+      "intent": "Add a `confirmationCode` string to Booking while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/10-human-owned-code/oracles/human-owned.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/BookingCode.ts",
+        "content": "export function formatCode(x: string): string {\n  return x.toUpperCase();\n}\n"
+      }
+    },
+    {
+      "id": "booking-workflow-11",
+      "subject": "booking-workflow",
+      "order": 11,
+      "kind": "enum_change",
+      "fromSpec": "subjects/booking-workflow/tasks/10-human-owned-code/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/11-source-enum/backend.arch",
+      "intent": "Add a booking source enum (direct/partner/ota) defaulting to direct, indexed.",
+      "expectedDiffTypes": [
+        "model_field_added",
+        "model_index_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/11-source-enum/oracles/source.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-12",
+      "subject": "booking-workflow",
+      "order": 12,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/tasks/11-source-enum/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/12-resource-active/backend.arch",
+      "intent": "Add a boolean `active` flag to Resource defaulting to true.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Resource.ts",
+        "src/runtime/db.ts",
+        "src/validators/Resource.ts",
+        "tests/models/Resource.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/12-resource-active/oracles/active.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-13",
+      "subject": "booking-workflow",
+      "order": 13,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/booking-workflow/tasks/12-resource-active/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/13-deposit-migration/backend.arch",
+      "intent": "Add an integer `depositCents` to Booking defaulting to 0; existing rows must backfill to the default.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/13-deposit-migration/oracles/deposit.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/booking-workflow/tasks/13-deposit-migration/db-check.ts"
+    },
+    {
+      "id": "booking-workflow-14",
+      "subject": "booking-workflow",
+      "order": 14,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/tasks/13-deposit-migration/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/14-validate-requests/backend.arch",
+      "intent": "Add a `specialRequests` string to Booking defaulting to empty string.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/14-validate-requests/oracles/special-requests.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-15",
+      "subject": "booking-workflow",
+      "order": 15,
+      "kind": "guarantee_change",
+      "fromSpec": "subjects/booking-workflow/tasks/14-validate-requests/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/15-charge-guarantee/backend.arch",
+      "intent": "Add a second p95 latency guarantee (booking_persist <= 500ms) to the CreateBooking workflow.",
+      "expectedDiffTypes": [
+        "workflow_guarantee_added"
+      ],
+      "expectedAffectedPaths": [
+        "src/workflows/CreateBooking.ts",
+        "tests/guarantees/"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-16",
+      "subject": "booking-workflow",
+      "order": 16,
+      "kind": "additive_field",
+      "fromSpec": "subjects/booking-workflow/tasks/15-charge-guarantee/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/16-updated-at/backend.arch",
+      "intent": "Add an `updatedAt` timestamp to Booking defaulting to now.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/16-updated-at/oracles/updated-at.test.ts"
+      ],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-17",
+      "subject": "booking-workflow",
+      "order": 17,
+      "kind": "destructive_block",
+      "fromSpec": "subjects/booking-workflow/tasks/16-updated-at/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/17-remove-nights/backend.arch",
+      "intent": "Remove the `nights` field from Booking (a destructive, data-losing change that must be blocked without confirmation).",
+      "expectedDiffTypes": [
+        "model_field_removed"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_blocks",
+      "oracleTests": [],
+      "driftScripts": []
+    },
+    {
+      "id": "booking-workflow-18",
+      "subject": "booking-workflow",
+      "order": 18,
+      "kind": "drift_injection",
+      "fromSpec": "subjects/booking-workflow/tasks/16-updated-at/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/18-drift-resource-test/backend.arch",
+      "intent": "A generated Resource model test is deleted out-of-band; drift must be detected and repaired.",
+      "expectedDiffTypes": [],
+      "expectedDriftKinds": [
+        "generated_file_missing",
+        "missing_generated_test"
+      ],
+      "expectedAffectedPaths": [
+        "tests/models/Resource.test.ts"
+      ],
+      "expectedOutcome": "drift_detected",
+      "oracleTests": [],
+      "driftScripts": [
+        "subjects/booking-workflow/tasks/18-drift-resource-test/drift/delete-resource-model-test.ts"
+      ]
+    },
+    {
+      "id": "booking-workflow-19",
+      "subject": "booking-workflow",
+      "order": 19,
+      "kind": "migration_data_preservation",
+      "fromSpec": "subjects/booking-workflow/tasks/16-updated-at/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/19-capacity-migration/backend.arch",
+      "intent": "Add an integer `capacity` to Resource defaulting to 0; existing rows must backfill to the default.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Resource.ts",
+        "src/runtime/db.ts",
+        "src/validators/Resource.ts",
+        "tests/models/Resource.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/19-capacity-migration/oracles/capacity.test.ts"
+      ],
+      "driftScripts": [],
+      "dbCheck": "subjects/booking-workflow/tasks/19-capacity-migration/db-check.ts"
+    },
+    {
+      "id": "booking-workflow-20",
+      "subject": "booking-workflow",
+      "order": 20,
+      "kind": "human_owned_edit",
+      "fromSpec": "subjects/booking-workflow/tasks/19-capacity-migration/backend.arch",
+      "toSpec": "subjects/booking-workflow/tasks/20-human-owned-tagline/backend.arch",
+      "intent": "Add a `tagline` string to Booking while preserving a human-owned helper under src/custom/**.",
+      "expectedDiffTypes": [
+        "model_field_added"
+      ],
+      "expectedAffectedPaths": [
+        "prisma/",
+        "src/models/Booking.ts",
+        "src/runtime/db.ts",
+        "src/validators/Booking.ts",
+        "tests/models/Booking.test.ts"
+      ],
+      "expectedOutcome": "apply_passes",
+      "oracleTests": [
+        "subjects/booking-workflow/tasks/20-human-owned-tagline/oracles/human-owned.test.ts"
+      ],
+      "driftScripts": [],
+      "humanOwnedSeed": {
+        "path": "src/custom/BookingTagline.ts",
+        "content": "export function makeTagline(x: string): string {\n  return x + \"!\";\n}\n"
+      }
+    }
+  ]
+}

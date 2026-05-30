@@ -1,0 +1,34 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Vendor {
+  id: id
+  name: string indexed
+  createdAt: timestamp default: now
+}
+
+model Invoice {
+  id: id
+  vendorId: Vendor
+  reference: string indexed
+  amountCents: int default: 0
+  status: enum["draft", "submitted", "approved", "rejected"] default: "draft" indexed
+  dueDate: timestamp default: now
+  approvalState: enum["pending", "approved", "rejected"] default: "pending" indexed
+  notes: string default: ""
+  approvedFlag: boolean default: false
+  submittedBy: string default: ""
+  currency: enum["usd", "eur", "gbp"] default: "usd" indexed
+  reviewedAt: timestamp default: now
+  priority: int default: 0
+  glCode: string default: ""
+  escalated: boolean default: false
+  taxCents: int default: 0
+  createdAt: timestamp default: now indexed
+}
+
+workflow SubmitInvoice {
+  trigger api POST /invoices auth: none
+  step validate reference
+  step insert Invoice
+  guarantee submit_invoice_p95_latency <= 250
+}

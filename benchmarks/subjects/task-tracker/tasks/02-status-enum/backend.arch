@@ -1,0 +1,16 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Task {
+  id: id
+  title: string
+  done: boolean default: false
+  priority: int default: 1
+  status: enum["open", "in_progress", "done"] default: "open" indexed
+  createdAt: timestamp default: now indexed
+}
+
+workflow CreateTask {
+  trigger api POST /tasks auth: none
+  step validate title
+  step insert Task
+}
