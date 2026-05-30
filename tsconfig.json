@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "files": [],
+  "references": [
+    { "path": "./packages/arch-cli" },
+    { "path": "./packages/arch-language" },
+    { "path": "./packages/arch-ir" },
+    { "path": "./packages/arch-sync" },
+    { "path": "./packages/arch-generator" },
+    { "path": "./packages/arch-agents" },
+    { "path": "./packages/arch-verifier" },
+    { "path": "./packages/arch-test-fixtures" }
+  ]
+}

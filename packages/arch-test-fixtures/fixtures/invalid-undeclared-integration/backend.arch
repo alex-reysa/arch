@@ -1,0 +1,15 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Post {
+  id: id
+  body: string
+}
+
+# References UndeclaredIntegration, which is never declared above.
+# Semantic validation must reject this before canonical IR is emitted.
+workflow CreatePost {
+  trigger api POST /posts auth: none
+  step validate body
+  step insert Post
+  step call UndeclaredIntegration.send
+}

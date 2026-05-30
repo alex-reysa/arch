@@ -1,0 +1,26 @@
+{
+  "name": "arch",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Arch — spec-to-code synchronization system. Monorepo root.",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20.10.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter './packages/*' build",
+    "typecheck": "pnpm -r --filter './packages/*' typecheck",
+    "test": "pnpm -r --filter './packages/*' test",
+    "lint": "pnpm -r --filter './packages/*' lint",
+    "e2e": "tsx scripts/run-e2e.ts",
+    "examples-e2e": "tsx scripts/run-examples-e2e.ts",
+    "update-goldens": "tsx scripts/update-goldens.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0"
+  }
+}

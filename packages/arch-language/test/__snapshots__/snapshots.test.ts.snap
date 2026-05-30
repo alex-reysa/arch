@@ -1,0 +1,2717 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden AST snapshots > SocialFeed v1: AST snapshot is stable 1`] = `
+"{
+  "ast": {
+    "kind": "ArchFile",
+    "span": {
+      "file": "examples/social-feed/v1/backend.arch",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 799,
+        "line": 41,
+        "column": 1
+      }
+    },
+    "file": "examples/social-feed/v1/backend.arch",
+    "target": {
+      "kind": "TargetDecl",
+      "span": {
+        "file": "examples/social-feed/v1/backend.arch",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 51,
+          "line": 1,
+          "column": 52
+        }
+      },
+      "stack": "ts.node.fastify.postgres.prisma",
+      "cache": "redis",
+      "modifiers": {}
+    },
+    "declarations": [
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "examples/social-feed/v1/backend.arch",
+          "start": {
+            "offset": 53,
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "offset": 136,
+            "line": 7,
+            "column": 2
+          }
+        },
+        "name": "User",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 68,
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "offset": 74,
+                "line": 4,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 77,
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "offset": 98,
+                "line": 5,
+                "column": 24
+              }
+            },
+            "name": "email",
+            "typeText": "string",
+            "modifiers": [
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "examples/social-feed/v1/backend.arch",
+                  "start": {
+                    "offset": 91,
+                    "line": 5,
+                    "column": 17
+                  },
+                  "end": {
+                    "offset": 98,
+                    "line": 5,
+                    "column": 24
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 101,
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "offset": 134,
+                "line": 6,
+                "column": 36
+              }
+            },
+            "name": "createdAt",
+            "typeText": "timestamp",
+            "defaultValue": {
+              "kind": "IdentifierValue",
+              "name": "now",
+              "span": {
+                "file": "examples/social-feed/v1/backend.arch",
+                "start": {
+                  "offset": 131,
+                  "line": 6,
+                  "column": 33
+                },
+                "end": {
+                  "offset": 134,
+                  "line": 6,
+                  "column": 36
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "examples/social-feed/v1/backend.arch",
+                  "start": {
+                    "offset": 122,
+                    "line": 6,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 134,
+                    "line": 6,
+                    "column": 36
+                  }
+                },
+                "value": {
+                  "kind": "IdentifierValue",
+                  "name": "now",
+                  "span": {
+                    "file": "examples/social-feed/v1/backend.arch",
+                    "start": {
+                      "offset": 131,
+                      "line": 6,
+                      "column": 33
+                    },
+                    "end": {
+                      "offset": 134,
+                      "line": 6,
+                      "column": 36
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": []
+      },
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "examples/social-feed/v1/backend.arch",
+          "start": {
+            "offset": 138,
+            "line": 9,
+            "column": 1
+          },
+          "end": {
+            "offset": 237,
+            "line": 14,
+            "column": 2
+          }
+        },
+        "name": "Post",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 153,
+                "line": 10,
+                "column": 3
+              },
+              "end": {
+                "offset": 159,
+                "line": 10,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 162,
+                "line": 11,
+                "column": 3
+              },
+              "end": {
+                "offset": 176,
+                "line": 11,
+                "column": 17
+              }
+            },
+            "name": "authorId",
+            "typeText": "User",
+            "modifiers": [],
+            "relationReference": {
+              "kind": "RelationReference",
+              "span": {
+                "file": "examples/social-feed/v1/backend.arch",
+                "start": {
+                  "offset": 172,
+                  "line": 11,
+                  "column": 13
+                },
+                "end": {
+                  "offset": 176,
+                  "line": 11,
+                  "column": 17
+                }
+              },
+              "targetModelName": "User",
+              "many": false
+            }
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 179,
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "offset": 191,
+                "line": 12,
+                "column": 15
+              }
+            },
+            "name": "body",
+            "typeText": "string",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 194,
+                "line": 13,
+                "column": 3
+              },
+              "end": {
+                "offset": 235,
+                "line": 13,
+                "column": 44
+              }
+            },
+            "name": "createdAt",
+            "typeText": "timestamp",
+            "defaultValue": {
+              "kind": "IdentifierValue",
+              "name": "now",
+              "span": {
+                "file": "examples/social-feed/v1/backend.arch",
+                "start": {
+                  "offset": 224,
+                  "line": 13,
+                  "column": 33
+                },
+                "end": {
+                  "offset": 227,
+                  "line": 13,
+                  "column": 36
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "examples/social-feed/v1/backend.arch",
+                  "start": {
+                    "offset": 215,
+                    "line": 13,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 227,
+                    "line": 13,
+                    "column": 36
+                  }
+                },
+                "value": {
+                  "kind": "IdentifierValue",
+                  "name": "now",
+                  "span": {
+                    "file": "examples/social-feed/v1/backend.arch",
+                    "start": {
+                      "offset": 224,
+                      "line": 13,
+                      "column": 33
+                    },
+                    "end": {
+                      "offset": 227,
+                      "line": 13,
+                      "column": 36
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "examples/social-feed/v1/backend.arch",
+                  "start": {
+                    "offset": 228,
+                    "line": 13,
+                    "column": 37
+                  },
+                  "end": {
+                    "offset": 235,
+                    "line": 13,
+                    "column": 44
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": []
+      },
+      {
+        "kind": "IntegrationDecl",
+        "span": {
+          "file": "examples/social-feed/v1/backend.arch",
+          "start": {
+            "offset": 239,
+            "line": 16,
+            "column": 1
+          },
+          "end": {
+            "offset": 301,
+            "line": 19,
+            "column": 2
+          }
+        },
+        "name": "FeedCache",
+        "properties": {
+          "kind": {
+            "kind": "IdentifierValue",
+            "name": "redis",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 271,
+                "line": 17,
+                "column": 9
+              },
+              "end": {
+                "offset": 276,
+                "line": 17,
+                "column": 14
+              }
+            }
+          },
+          "failure": {
+            "kind": "IdentifierValue",
+            "name": "best_effort",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 288,
+                "line": 18,
+                "column": 12
+              },
+              "end": {
+                "offset": 299,
+                "line": 18,
+                "column": 23
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "IntegrationDecl",
+        "span": {
+          "file": "examples/social-feed/v1/backend.arch",
+          "start": {
+            "offset": 303,
+            "line": 21,
+            "column": 1
+          },
+          "end": {
+            "offset": 370,
+            "line": 24,
+            "column": 2
+          }
+        },
+        "name": "PushNotifier",
+        "properties": {
+          "kind": {
+            "kind": "IdentifierValue",
+            "name": "webhook",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 338,
+                "line": 22,
+                "column": 9
+              },
+              "end": {
+                "offset": 345,
+                "line": 22,
+                "column": 16
+              }
+            }
+          },
+          "failure": {
+            "kind": "IdentifierValue",
+            "name": "best_effort",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 357,
+                "line": 23,
+                "column": 12
+              },
+              "end": {
+                "offset": 368,
+                "line": 23,
+                "column": 23
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "PolicyDecl",
+        "span": {
+          "file": "examples/social-feed/v1/backend.arch",
+          "start": {
+            "offset": 372,
+            "line": 26,
+            "column": 1
+          },
+          "end": {
+            "offset": 454,
+            "line": 28,
+            "column": 2
+          }
+        },
+        "name": "sanitizeHtml",
+        "body": "strip script tags and on* attributes from inputs",
+        "properties": {
+          "body": {
+            "kind": "StringValue",
+            "value": "strip script tags and on* attributes from inputs",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 402,
+                "line": 27,
+                "column": 9
+              },
+              "end": {
+                "offset": 452,
+                "line": 27,
+                "column": 59
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "WorkflowDecl",
+        "span": {
+          "file": "examples/social-feed/v1/backend.arch",
+          "start": {
+            "offset": 456,
+            "line": 30,
+            "column": 1
+          },
+          "end": {
+            "offset": 798,
+            "line": 40,
+            "column": 2
+          }
+        },
+        "name": "CreatePost",
+        "trigger": {
+          "kind": "ApiTrigger",
+          "span": {
+            "file": "examples/social-feed/v1/backend.arch",
+            "start": {
+              "offset": 480,
+              "line": 31,
+              "column": 3
+            },
+            "end": {
+              "offset": 514,
+              "line": 31,
+              "column": 37
+            }
+          },
+          "method": "POST",
+          "path": "/posts",
+          "auth": "none"
+        },
+        "steps": [
+          {
+            "kind": "ValidateStep",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 517,
+                "line": 32,
+                "column": 3
+              },
+              "end": {
+                "offset": 535,
+                "line": 32,
+                "column": 21
+              }
+            },
+            "index": 0,
+            "target": "body"
+          },
+          {
+            "kind": "SanitizeStep",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 538,
+                "line": 33,
+                "column": 3
+              },
+              "end": {
+                "offset": 575,
+                "line": 33,
+                "column": 40
+              }
+            },
+            "index": 1,
+            "target": "body",
+            "policy": "sanitizeHtml"
+          },
+          {
+            "kind": "InsertStep",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 578,
+                "line": 34,
+                "column": 3
+              },
+              "end": {
+                "offset": 589,
+                "line": 34,
+                "column": 14
+              }
+            },
+            "index": 2,
+            "modelName": "Post"
+          },
+          {
+            "kind": "CallStep",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 597,
+                "line": 35,
+                "column": 3
+              },
+              "end": {
+                "offset": 623,
+                "line": 35,
+                "column": 29
+              }
+            },
+            "index": 3,
+            "integrationName": "FeedCache",
+            "operation": "update"
+          },
+          {
+            "kind": "CallStep",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 626,
+                "line": 36,
+                "column": 3
+              },
+              "end": {
+                "offset": 653,
+                "line": 36,
+                "column": 30
+              }
+            },
+            "index": 4,
+            "integrationName": "PushNotifier",
+            "operation": "send"
+          }
+        ],
+        "guarantees": [
+          {
+            "kind": "ShortGuarantee",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 656,
+                "line": 37,
+                "column": 3
+              },
+              "end": {
+                "offset": 695,
+                "line": 37,
+                "column": 42
+              }
+            },
+            "id": "no_unsanitized_html_persisted"
+          },
+          {
+            "kind": "ShortGuarantee",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 698,
+                "line": 38,
+                "column": 3
+              },
+              "end": {
+                "offset": 751,
+                "line": 38,
+                "column": 56
+              }
+            },
+            "id": "notification_failure_does_not_rollback_post"
+          },
+          {
+            "kind": "ShortGuarantee",
+            "span": {
+              "file": "examples/social-feed/v1/backend.arch",
+              "start": {
+                "offset": 754,
+                "line": 39,
+                "column": 3
+              },
+              "end": {
+                "offset": 796,
+                "line": 39,
+                "column": 45
+              }
+            },
+            "id": "post_creation_p95_latency",
+            "operator": "<=",
+            "value": {
+              "kind": "NumberValue",
+              "value": 250,
+              "span": {
+                "file": "examples/social-feed/v1/backend.arch",
+                "start": {
+                  "offset": 793,
+                  "line": 39,
+                  "column": 42
+                },
+                "end": {
+                  "offset": 796,
+                  "line": 39,
+                  "column": 45
+                }
+              }
+            }
+          }
+        ],
+        "tests": [],
+        "customs": []
+      }
+    ],
+    "reservedSyntax": []
+  },
+  "diagnostics": []
+}"
+`;
+
+exports[`golden AST snapshots > SocialFeed v2 visibility: AST snapshot is stable 1`] = `
+"{
+  "ast": {
+    "kind": "ArchFile",
+    "span": {
+      "file": "examples/social-feed/v2-visibility/backend.arch",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 878,
+        "line": 42,
+        "column": 1
+      }
+    },
+    "file": "examples/social-feed/v2-visibility/backend.arch",
+    "target": {
+      "kind": "TargetDecl",
+      "span": {
+        "file": "examples/social-feed/v2-visibility/backend.arch",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 51,
+          "line": 1,
+          "column": 52
+        }
+      },
+      "stack": "ts.node.fastify.postgres.prisma",
+      "cache": "redis",
+      "modifiers": {}
+    },
+    "declarations": [
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "examples/social-feed/v2-visibility/backend.arch",
+          "start": {
+            "offset": 53,
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "offset": 136,
+            "line": 7,
+            "column": 2
+          }
+        },
+        "name": "User",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 68,
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "offset": 74,
+                "line": 4,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 77,
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "offset": 98,
+                "line": 5,
+                "column": 24
+              }
+            },
+            "name": "email",
+            "typeText": "string",
+            "modifiers": [
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "examples/social-feed/v2-visibility/backend.arch",
+                  "start": {
+                    "offset": 91,
+                    "line": 5,
+                    "column": 17
+                  },
+                  "end": {
+                    "offset": 98,
+                    "line": 5,
+                    "column": 24
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 101,
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "offset": 134,
+                "line": 6,
+                "column": 36
+              }
+            },
+            "name": "createdAt",
+            "typeText": "timestamp",
+            "defaultValue": {
+              "kind": "IdentifierValue",
+              "name": "now",
+              "span": {
+                "file": "examples/social-feed/v2-visibility/backend.arch",
+                "start": {
+                  "offset": 131,
+                  "line": 6,
+                  "column": 33
+                },
+                "end": {
+                  "offset": 134,
+                  "line": 6,
+                  "column": 36
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "examples/social-feed/v2-visibility/backend.arch",
+                  "start": {
+                    "offset": 122,
+                    "line": 6,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 134,
+                    "line": 6,
+                    "column": 36
+                  }
+                },
+                "value": {
+                  "kind": "IdentifierValue",
+                  "name": "now",
+                  "span": {
+                    "file": "examples/social-feed/v2-visibility/backend.arch",
+                    "start": {
+                      "offset": 131,
+                      "line": 6,
+                      "column": 33
+                    },
+                    "end": {
+                      "offset": 134,
+                      "line": 6,
+                      "column": 36
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": []
+      },
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "examples/social-feed/v2-visibility/backend.arch",
+          "start": {
+            "offset": 138,
+            "line": 9,
+            "column": 1
+          },
+          "end": {
+            "offset": 316,
+            "line": 15,
+            "column": 2
+          }
+        },
+        "name": "Post",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 153,
+                "line": 10,
+                "column": 3
+              },
+              "end": {
+                "offset": 159,
+                "line": 10,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 162,
+                "line": 11,
+                "column": 3
+              },
+              "end": {
+                "offset": 176,
+                "line": 11,
+                "column": 17
+              }
+            },
+            "name": "authorId",
+            "typeText": "User",
+            "modifiers": [],
+            "relationReference": {
+              "kind": "RelationReference",
+              "span": {
+                "file": "examples/social-feed/v2-visibility/backend.arch",
+                "start": {
+                  "offset": 172,
+                  "line": 11,
+                  "column": 13
+                },
+                "end": {
+                  "offset": 176,
+                  "line": 11,
+                  "column": 17
+                }
+              },
+              "targetModelName": "User",
+              "many": false
+            }
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 179,
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "offset": 191,
+                "line": 12,
+                "column": 15
+              }
+            },
+            "name": "body",
+            "typeText": "string",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 194,
+                "line": 13,
+                "column": 3
+              },
+              "end": {
+                "offset": 270,
+                "line": 13,
+                "column": 79
+              }
+            },
+            "name": "visibility",
+            "typeText": "enum",
+            "enumValues": [
+              "public",
+              "private",
+              "followers"
+            ],
+            "defaultValue": {
+              "kind": "StringValue",
+              "value": "public",
+              "span": {
+                "file": "examples/social-feed/v2-visibility/backend.arch",
+                "start": {
+                  "offset": 254,
+                  "line": 13,
+                  "column": 63
+                },
+                "end": {
+                  "offset": 262,
+                  "line": 13,
+                  "column": 71
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "examples/social-feed/v2-visibility/backend.arch",
+                  "start": {
+                    "offset": 245,
+                    "line": 13,
+                    "column": 54
+                  },
+                  "end": {
+                    "offset": 262,
+                    "line": 13,
+                    "column": 71
+                  }
+                },
+                "value": {
+                  "kind": "StringValue",
+                  "value": "public",
+                  "span": {
+                    "file": "examples/social-feed/v2-visibility/backend.arch",
+                    "start": {
+                      "offset": 254,
+                      "line": 13,
+                      "column": 63
+                    },
+                    "end": {
+                      "offset": 262,
+                      "line": 13,
+                      "column": 71
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "examples/social-feed/v2-visibility/backend.arch",
+                  "start": {
+                    "offset": 263,
+                    "line": 13,
+                    "column": 72
+                  },
+                  "end": {
+                    "offset": 270,
+                    "line": 13,
+                    "column": 79
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 273,
+                "line": 14,
+                "column": 3
+              },
+              "end": {
+                "offset": 314,
+                "line": 14,
+                "column": 44
+              }
+            },
+            "name": "createdAt",
+            "typeText": "timestamp",
+            "defaultValue": {
+              "kind": "IdentifierValue",
+              "name": "now",
+              "span": {
+                "file": "examples/social-feed/v2-visibility/backend.arch",
+                "start": {
+                  "offset": 303,
+                  "line": 14,
+                  "column": 33
+                },
+                "end": {
+                  "offset": 306,
+                  "line": 14,
+                  "column": 36
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "examples/social-feed/v2-visibility/backend.arch",
+                  "start": {
+                    "offset": 294,
+                    "line": 14,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 306,
+                    "line": 14,
+                    "column": 36
+                  }
+                },
+                "value": {
+                  "kind": "IdentifierValue",
+                  "name": "now",
+                  "span": {
+                    "file": "examples/social-feed/v2-visibility/backend.arch",
+                    "start": {
+                      "offset": 303,
+                      "line": 14,
+                      "column": 33
+                    },
+                    "end": {
+                      "offset": 306,
+                      "line": 14,
+                      "column": 36
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "examples/social-feed/v2-visibility/backend.arch",
+                  "start": {
+                    "offset": 307,
+                    "line": 14,
+                    "column": 37
+                  },
+                  "end": {
+                    "offset": 314,
+                    "line": 14,
+                    "column": 44
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": []
+      },
+      {
+        "kind": "IntegrationDecl",
+        "span": {
+          "file": "examples/social-feed/v2-visibility/backend.arch",
+          "start": {
+            "offset": 318,
+            "line": 17,
+            "column": 1
+          },
+          "end": {
+            "offset": 380,
+            "line": 20,
+            "column": 2
+          }
+        },
+        "name": "FeedCache",
+        "properties": {
+          "kind": {
+            "kind": "IdentifierValue",
+            "name": "redis",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 350,
+                "line": 18,
+                "column": 9
+              },
+              "end": {
+                "offset": 355,
+                "line": 18,
+                "column": 14
+              }
+            }
+          },
+          "failure": {
+            "kind": "IdentifierValue",
+            "name": "best_effort",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 367,
+                "line": 19,
+                "column": 12
+              },
+              "end": {
+                "offset": 378,
+                "line": 19,
+                "column": 23
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "IntegrationDecl",
+        "span": {
+          "file": "examples/social-feed/v2-visibility/backend.arch",
+          "start": {
+            "offset": 382,
+            "line": 22,
+            "column": 1
+          },
+          "end": {
+            "offset": 449,
+            "line": 25,
+            "column": 2
+          }
+        },
+        "name": "PushNotifier",
+        "properties": {
+          "kind": {
+            "kind": "IdentifierValue",
+            "name": "webhook",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 417,
+                "line": 23,
+                "column": 9
+              },
+              "end": {
+                "offset": 424,
+                "line": 23,
+                "column": 16
+              }
+            }
+          },
+          "failure": {
+            "kind": "IdentifierValue",
+            "name": "best_effort",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 436,
+                "line": 24,
+                "column": 12
+              },
+              "end": {
+                "offset": 447,
+                "line": 24,
+                "column": 23
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "PolicyDecl",
+        "span": {
+          "file": "examples/social-feed/v2-visibility/backend.arch",
+          "start": {
+            "offset": 451,
+            "line": 27,
+            "column": 1
+          },
+          "end": {
+            "offset": 533,
+            "line": 29,
+            "column": 2
+          }
+        },
+        "name": "sanitizeHtml",
+        "body": "strip script tags and on* attributes from inputs",
+        "properties": {
+          "body": {
+            "kind": "StringValue",
+            "value": "strip script tags and on* attributes from inputs",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 481,
+                "line": 28,
+                "column": 9
+              },
+              "end": {
+                "offset": 531,
+                "line": 28,
+                "column": 59
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "WorkflowDecl",
+        "span": {
+          "file": "examples/social-feed/v2-visibility/backend.arch",
+          "start": {
+            "offset": 535,
+            "line": 31,
+            "column": 1
+          },
+          "end": {
+            "offset": 877,
+            "line": 41,
+            "column": 2
+          }
+        },
+        "name": "CreatePost",
+        "trigger": {
+          "kind": "ApiTrigger",
+          "span": {
+            "file": "examples/social-feed/v2-visibility/backend.arch",
+            "start": {
+              "offset": 559,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 593,
+              "line": 32,
+              "column": 37
+            }
+          },
+          "method": "POST",
+          "path": "/posts",
+          "auth": "none"
+        },
+        "steps": [
+          {
+            "kind": "ValidateStep",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 596,
+                "line": 33,
+                "column": 3
+              },
+              "end": {
+                "offset": 614,
+                "line": 33,
+                "column": 21
+              }
+            },
+            "index": 0,
+            "target": "body"
+          },
+          {
+            "kind": "SanitizeStep",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 617,
+                "line": 34,
+                "column": 3
+              },
+              "end": {
+                "offset": 654,
+                "line": 34,
+                "column": 40
+              }
+            },
+            "index": 1,
+            "target": "body",
+            "policy": "sanitizeHtml"
+          },
+          {
+            "kind": "InsertStep",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 657,
+                "line": 35,
+                "column": 3
+              },
+              "end": {
+                "offset": 668,
+                "line": 35,
+                "column": 14
+              }
+            },
+            "index": 2,
+            "modelName": "Post"
+          },
+          {
+            "kind": "CallStep",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 676,
+                "line": 36,
+                "column": 3
+              },
+              "end": {
+                "offset": 702,
+                "line": 36,
+                "column": 29
+              }
+            },
+            "index": 3,
+            "integrationName": "FeedCache",
+            "operation": "update"
+          },
+          {
+            "kind": "CallStep",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 705,
+                "line": 37,
+                "column": 3
+              },
+              "end": {
+                "offset": 732,
+                "line": 37,
+                "column": 30
+              }
+            },
+            "index": 4,
+            "integrationName": "PushNotifier",
+            "operation": "send"
+          }
+        ],
+        "guarantees": [
+          {
+            "kind": "ShortGuarantee",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 735,
+                "line": 38,
+                "column": 3
+              },
+              "end": {
+                "offset": 774,
+                "line": 38,
+                "column": 42
+              }
+            },
+            "id": "no_unsanitized_html_persisted"
+          },
+          {
+            "kind": "ShortGuarantee",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 777,
+                "line": 39,
+                "column": 3
+              },
+              "end": {
+                "offset": 830,
+                "line": 39,
+                "column": 56
+              }
+            },
+            "id": "notification_failure_does_not_rollback_post"
+          },
+          {
+            "kind": "ShortGuarantee",
+            "span": {
+              "file": "examples/social-feed/v2-visibility/backend.arch",
+              "start": {
+                "offset": 833,
+                "line": 40,
+                "column": 3
+              },
+              "end": {
+                "offset": 875,
+                "line": 40,
+                "column": 45
+              }
+            },
+            "id": "post_creation_p95_latency",
+            "operator": "<=",
+            "value": {
+              "kind": "NumberValue",
+              "value": 250,
+              "span": {
+                "file": "examples/social-feed/v2-visibility/backend.arch",
+                "start": {
+                  "offset": 872,
+                  "line": 40,
+                  "column": 42
+                },
+                "end": {
+                  "offset": 875,
+                  "line": 40,
+                  "column": 45
+                }
+              }
+            }
+          }
+        ],
+        "tests": [],
+        "customs": []
+      }
+    ],
+    "reservedSyntax": []
+  },
+  "diagnostics": []
+}"
+`;
+
+exports[`golden AST snapshots > invalid: invalid token fixture snapshot 1`] = `
+"{
+  "ast": {
+    "kind": "ArchFile",
+    "span": {
+      "file": "fixtures/invalid-token.arch",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 130,
+        "line": 8,
+        "column": 1
+      }
+    },
+    "file": "fixtures/invalid-token.arch",
+    "target": {
+      "kind": "TargetDecl",
+      "span": {
+        "file": "fixtures/invalid-token.arch",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 51,
+          "line": 1,
+          "column": 52
+        }
+      },
+      "stack": "ts.node.fastify.postgres.prisma",
+      "cache": "redis",
+      "modifiers": {}
+    },
+    "declarations": [
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "fixtures/invalid-token.arch",
+          "start": {
+            "offset": 53,
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "offset": 129,
+            "line": 7,
+            "column": 2
+          }
+        },
+        "name": "Post",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/invalid-token.arch",
+              "start": {
+                "offset": 68,
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "offset": 74,
+                "line": 4,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/invalid-token.arch",
+              "start": {
+                "offset": 77,
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "offset": 89,
+                "line": 5,
+                "column": 15
+              }
+            },
+            "name": "body",
+            "typeText": "string",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/invalid-token.arch",
+              "start": {
+                "offset": 94,
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "offset": 127,
+                "line": 6,
+                "column": 36
+              }
+            },
+            "name": "createdAt",
+            "typeText": "timestamp",
+            "defaultValue": {
+              "kind": "IdentifierValue",
+              "name": "now",
+              "span": {
+                "file": "fixtures/invalid-token.arch",
+                "start": {
+                  "offset": 124,
+                  "line": 6,
+                  "column": 33
+                },
+                "end": {
+                  "offset": 127,
+                  "line": 6,
+                  "column": 36
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "fixtures/invalid-token.arch",
+                  "start": {
+                    "offset": 115,
+                    "line": 6,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 127,
+                    "line": 6,
+                    "column": 36
+                  }
+                },
+                "value": {
+                  "kind": "IdentifierValue",
+                  "name": "now",
+                  "span": {
+                    "file": "fixtures/invalid-token.arch",
+                    "start": {
+                      "offset": 124,
+                      "line": 6,
+                      "column": 33
+                    },
+                    "end": {
+                      "offset": 127,
+                      "line": 6,
+                      "column": 36
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": []
+      }
+    ],
+    "reservedSyntax": []
+  },
+  "diagnostics": [
+    {
+      "code": "language.lex.invalid_token",
+      "severity": "error",
+      "message": "Unexpected character \\"@\\"",
+      "span": {
+        "file": "fixtures/invalid-token.arch",
+        "start": {
+          "offset": 90,
+          "line": 5,
+          "column": 16
+        },
+        "end": {
+          "offset": 91,
+          "line": 5,
+          "column": 17
+        }
+      },
+      "hint": "remove the character or wrap it in a string literal"
+    }
+  ]
+}"
+`;
+
+exports[`golden AST snapshots > invalid: unclosed block fixture snapshot 1`] = `
+"{
+  "ast": {
+    "kind": "ArchFile",
+    "span": {
+      "file": "fixtures/unclosed-block.arch",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 163,
+        "line": 11,
+        "column": 1
+      }
+    },
+    "file": "fixtures/unclosed-block.arch",
+    "target": {
+      "kind": "TargetDecl",
+      "span": {
+        "file": "fixtures/unclosed-block.arch",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 51,
+          "line": 1,
+          "column": 52
+        }
+      },
+      "stack": "ts.node.fastify.postgres.prisma",
+      "cache": "redis",
+      "modifiers": {}
+    },
+    "declarations": [
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "fixtures/unclosed-block.arch",
+          "start": {
+            "offset": 53,
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "offset": 98,
+            "line": 5,
+            "column": 24
+          }
+        },
+        "name": "User",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/unclosed-block.arch",
+              "start": {
+                "offset": 68,
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "offset": 74,
+                "line": 4,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/unclosed-block.arch",
+              "start": {
+                "offset": 77,
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "offset": 98,
+                "line": 5,
+                "column": 24
+              }
+            },
+            "name": "email",
+            "typeText": "string",
+            "modifiers": [
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "fixtures/unclosed-block.arch",
+                  "start": {
+                    "offset": 91,
+                    "line": 5,
+                    "column": 17
+                  },
+                  "end": {
+                    "offset": 98,
+                    "line": 5,
+                    "column": 24
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": []
+      },
+      {
+        "kind": "IntegrationDecl",
+        "span": {
+          "file": "fixtures/unclosed-block.arch",
+          "start": {
+            "offset": 100,
+            "line": 7,
+            "column": 1
+          },
+          "end": {
+            "offset": 162,
+            "line": 10,
+            "column": 2
+          }
+        },
+        "name": "FeedCache",
+        "properties": {
+          "kind": {
+            "kind": "IdentifierValue",
+            "name": "redis",
+            "span": {
+              "file": "fixtures/unclosed-block.arch",
+              "start": {
+                "offset": 132,
+                "line": 8,
+                "column": 9
+              },
+              "end": {
+                "offset": 137,
+                "line": 8,
+                "column": 14
+              }
+            }
+          },
+          "failure": {
+            "kind": "IdentifierValue",
+            "name": "best_effort",
+            "span": {
+              "file": "fixtures/unclosed-block.arch",
+              "start": {
+                "offset": 149,
+                "line": 9,
+                "column": 12
+              },
+              "end": {
+                "offset": 160,
+                "line": 9,
+                "column": 23
+              }
+            }
+          }
+        }
+      }
+    ],
+    "reservedSyntax": []
+  },
+  "diagnostics": [
+    {
+      "code": "language.parse.unclosed_block",
+      "severity": "error",
+      "message": "Expected '}' but found keyword 'integration'",
+      "span": {
+        "file": "fixtures/unclosed-block.arch",
+        "start": {
+          "offset": 100,
+          "line": 7,
+          "column": 1
+        },
+        "end": {
+          "offset": 111,
+          "line": 7,
+          "column": 12
+        }
+      }
+    }
+  ]
+}"
+`;
+
+exports[`golden AST snapshots > invalid: unterminated string fixture snapshot 1`] = `
+"{
+  "ast": {
+    "kind": "ArchFile",
+    "span": {
+      "file": "fixtures/unterminated-string.arch",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 104,
+        "line": 6,
+        "column": 1
+      }
+    },
+    "file": "fixtures/unterminated-string.arch",
+    "target": {
+      "kind": "TargetDecl",
+      "span": {
+        "file": "fixtures/unterminated-string.arch",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 51,
+          "line": 1,
+          "column": 52
+        }
+      },
+      "stack": "ts.node.fastify.postgres.prisma",
+      "cache": "redis",
+      "modifiers": {}
+    },
+    "declarations": [
+      {
+        "kind": "PolicyDecl",
+        "span": {
+          "file": "fixtures/unterminated-string.arch",
+          "start": {
+            "offset": 53,
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "offset": 103,
+            "line": 5,
+            "column": 2
+          }
+        },
+        "name": "sanitizeHtml",
+        "body": "strip script tags",
+        "properties": {
+          "body": {
+            "kind": "StringValue",
+            "value": "strip script tags",
+            "span": {
+              "file": "fixtures/unterminated-string.arch",
+              "start": {
+                "offset": 83,
+                "line": 4,
+                "column": 9
+              },
+              "end": {
+                "offset": 101,
+                "line": 4,
+                "column": 27
+              }
+            }
+          }
+        }
+      }
+    ],
+    "reservedSyntax": []
+  },
+  "diagnostics": [
+    {
+      "code": "language.lex.unterminated_string",
+      "severity": "error",
+      "message": "Unterminated string literal",
+      "span": {
+        "file": "fixtures/unterminated-string.arch",
+        "start": {
+          "offset": 83,
+          "line": 4,
+          "column": 9
+        },
+        "end": {
+          "offset": 101,
+          "line": 4,
+          "column": 27
+        }
+      },
+      "hint": "string literals must end with a closing \`\\"\` on the same line"
+    }
+  ]
+}"
+`;
+
+exports[`golden AST snapshots > reserved syntax fixture: snapshot exposes every reserved-* node form 1`] = `
+"{
+  "ast": {
+    "kind": "ArchFile",
+    "span": {
+      "file": "fixtures/reserved-syntax.arch",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 683,
+        "line": 35,
+        "column": 1
+      }
+    },
+    "file": "fixtures/reserved-syntax.arch",
+    "target": {
+      "kind": "TargetDecl",
+      "span": {
+        "file": "fixtures/reserved-syntax.arch",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 51,
+          "line": 1,
+          "column": 52
+        }
+      },
+      "stack": "ts.node.fastify.postgres.prisma",
+      "cache": "redis",
+      "modifiers": {}
+    },
+    "declarations": [
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 100,
+            "line": 4,
+            "column": 1
+          },
+          "end": {
+            "offset": 189,
+            "line": 8,
+            "column": 2
+          }
+        },
+        "name": "User",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 115,
+                "line": 5,
+                "column": 3
+              },
+              "end": {
+                "offset": 121,
+                "line": 5,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 124,
+                "line": 6,
+                "column": 3
+              },
+              "end": {
+                "offset": 143,
+                "line": 6,
+                "column": 22
+              }
+            },
+            "name": "email",
+            "typeText": "string",
+            "modifiers": [
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "fixtures/reserved-syntax.arch",
+                  "start": {
+                    "offset": 138,
+                    "line": 6,
+                    "column": 17
+                  },
+                  "end": {
+                    "offset": 143,
+                    "line": 6,
+                    "column": 22
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 146,
+                "line": 7,
+                "column": 3
+              },
+              "end": {
+                "offset": 187,
+                "line": 7,
+                "column": 44
+              }
+            },
+            "name": "createdAt",
+            "typeText": "timestamp",
+            "defaultValue": {
+              "kind": "IdentifierValue",
+              "name": "now",
+              "span": {
+                "file": "fixtures/reserved-syntax.arch",
+                "start": {
+                  "offset": 176,
+                  "line": 7,
+                  "column": 33
+                },
+                "end": {
+                  "offset": 179,
+                  "line": 7,
+                  "column": 36
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "fixtures/reserved-syntax.arch",
+                  "start": {
+                    "offset": 167,
+                    "line": 7,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 179,
+                    "line": 7,
+                    "column": 36
+                  }
+                },
+                "value": {
+                  "kind": "IdentifierValue",
+                  "name": "now",
+                  "span": {
+                    "file": "fixtures/reserved-syntax.arch",
+                    "start": {
+                      "offset": 176,
+                      "line": 7,
+                      "column": 33
+                    },
+                    "end": {
+                      "offset": 179,
+                      "line": 7,
+                      "column": 36
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "fixtures/reserved-syntax.arch",
+                  "start": {
+                    "offset": 180,
+                    "line": 7,
+                    "column": 37
+                  },
+                  "end": {
+                    "offset": 187,
+                    "line": 7,
+                    "column": 44
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": []
+      },
+      {
+        "kind": "ModelDecl",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 241,
+            "line": 11,
+            "column": 1
+          },
+          "end": {
+            "offset": 399,
+            "line": 18,
+            "column": 2
+          }
+        },
+        "name": "Post",
+        "fields": [
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 256,
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "offset": 262,
+                "line": 12,
+                "column": 9
+              }
+            },
+            "name": "id",
+            "typeText": "id",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 265,
+                "line": 13,
+                "column": 3
+              },
+              "end": {
+                "offset": 279,
+                "line": 13,
+                "column": 17
+              }
+            },
+            "name": "authorId",
+            "typeText": "User",
+            "modifiers": [],
+            "relationReference": {
+              "kind": "RelationReference",
+              "span": {
+                "file": "fixtures/reserved-syntax.arch",
+                "start": {
+                  "offset": 275,
+                  "line": 13,
+                  "column": 13
+                },
+                "end": {
+                  "offset": 279,
+                  "line": 13,
+                  "column": 17
+                }
+              },
+              "targetModelName": "User",
+              "many": false
+            }
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 282,
+                "line": 14,
+                "column": 3
+              },
+              "end": {
+                "offset": 294,
+                "line": 14,
+                "column": 15
+              }
+            },
+            "name": "body",
+            "typeText": "string",
+            "modifiers": []
+          },
+          {
+            "kind": "FieldDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 297,
+                "line": 15,
+                "column": 3
+              },
+              "end": {
+                "offset": 338,
+                "line": 15,
+                "column": 44
+              }
+            },
+            "name": "createdAt",
+            "typeText": "timestamp",
+            "defaultValue": {
+              "kind": "IdentifierValue",
+              "name": "now",
+              "span": {
+                "file": "fixtures/reserved-syntax.arch",
+                "start": {
+                  "offset": 327,
+                  "line": 15,
+                  "column": 33
+                },
+                "end": {
+                  "offset": 330,
+                  "line": 15,
+                  "column": 36
+                }
+              }
+            },
+            "modifiers": [
+              {
+                "kind": "FieldDefaultModifier",
+                "span": {
+                  "file": "fixtures/reserved-syntax.arch",
+                  "start": {
+                    "offset": 318,
+                    "line": 15,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 330,
+                    "line": 15,
+                    "column": 36
+                  }
+                },
+                "value": {
+                  "kind": "IdentifierValue",
+                  "name": "now",
+                  "span": {
+                    "file": "fixtures/reserved-syntax.arch",
+                    "start": {
+                      "offset": 327,
+                      "line": 15,
+                      "column": 33
+                    },
+                    "end": {
+                      "offset": 330,
+                      "line": 15,
+                      "column": 36
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "FieldIndexModifier",
+                "span": {
+                  "file": "fixtures/reserved-syntax.arch",
+                  "start": {
+                    "offset": 331,
+                    "line": 15,
+                    "column": 37
+                  },
+                  "end": {
+                    "offset": 338,
+                    "line": 15,
+                    "column": 44
+                  }
+                },
+                "modifier": "indexed"
+              }
+            ]
+          }
+        ],
+        "reservedIndexes": [
+          {
+            "kind": "ReservedIndexDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 341,
+                "line": 16,
+                "column": 3
+              },
+              "end": {
+                "offset": 367,
+                "line": 16,
+                "column": 29
+              }
+            },
+            "form": "named",
+            "name": "by_author",
+            "fields": [
+              "authorId"
+            ]
+          },
+          {
+            "kind": "ReservedIndexDecl",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 370,
+                "line": 17,
+                "column": 3
+              },
+              "end": {
+                "offset": 397,
+                "line": 17,
+                "column": 30
+              }
+            },
+            "form": "composite",
+            "fields": [
+              "authorId",
+              "createdAt"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "CustomDecl",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 445,
+            "line": 21,
+            "column": 1
+          },
+          "end": {
+            "offset": 526,
+            "line": 24,
+            "column": 2
+          }
+        },
+        "name": "PostTestGen",
+        "customKind": "test_generator",
+        "customKindIsReserved": true,
+        "properties": {
+          "kind": {
+            "kind": "IdentifierValue",
+            "name": "test_generator",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 474,
+                "line": 22,
+                "column": 9
+              },
+              "end": {
+                "offset": 488,
+                "line": 22,
+                "column": 23
+              }
+            }
+          },
+          "file": {
+            "kind": "StringValue",
+            "value": "src/custom/postTestGen.ts",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 497,
+                "line": 23,
+                "column": 9
+              },
+              "end": {
+                "offset": 524,
+                "line": 23,
+                "column": 36
+              }
+            }
+          }
+        }
+      },
+      {
+        "kind": "WorkflowDecl",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 528,
+            "line": 26,
+            "column": 1
+          },
+          "end": {
+            "offset": 603,
+            "line": 29,
+            "column": 2
+          }
+        },
+        "name": "Hourly",
+        "trigger": {
+          "kind": "ReservedScheduleTrigger",
+          "span": {
+            "file": "fixtures/reserved-syntax.arch",
+            "start": {
+              "offset": 548,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 582,
+              "line": 27,
+              "column": 37
+            }
+          },
+          "cron": "0 * * * *"
+        },
+        "steps": [
+          {
+            "kind": "InsertStep",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 585,
+                "line": 28,
+                "column": 3
+              },
+              "end": {
+                "offset": 596,
+                "line": 28,
+                "column": 14
+              }
+            },
+            "index": 0,
+            "modelName": "Post"
+          }
+        ],
+        "guarantees": [],
+        "tests": [],
+        "customs": []
+      },
+      {
+        "kind": "WorkflowDecl",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 605,
+            "line": 31,
+            "column": 1
+          },
+          "end": {
+            "offset": 682,
+            "line": 34,
+            "column": 2
+          }
+        },
+        "name": "ManualReindex",
+        "trigger": {
+          "kind": "ReservedManualTrigger",
+          "span": {
+            "file": "fixtures/reserved-syntax.arch",
+            "start": {
+              "offset": 632,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 661,
+              "line": 32,
+              "column": 32
+            }
+          },
+          "label": "retry index"
+        },
+        "steps": [
+          {
+            "kind": "InsertStep",
+            "span": {
+              "file": "fixtures/reserved-syntax.arch",
+              "start": {
+                "offset": 664,
+                "line": 33,
+                "column": 3
+              },
+              "end": {
+                "offset": 675,
+                "line": 33,
+                "column": 14
+              }
+            },
+            "index": 0,
+            "modelName": "Post"
+          }
+        ],
+        "guarantees": [],
+        "tests": [],
+        "customs": []
+      }
+    ],
+    "reservedSyntax": [
+      {
+        "kind": "ReservedIndexDecl",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 341,
+            "line": 16,
+            "column": 3
+          },
+          "end": {
+            "offset": 367,
+            "line": 16,
+            "column": 29
+          }
+        },
+        "form": "named",
+        "name": "by_author",
+        "fields": [
+          "authorId"
+        ]
+      },
+      {
+        "kind": "ReservedIndexDecl",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 370,
+            "line": 17,
+            "column": 3
+          },
+          "end": {
+            "offset": 397,
+            "line": 17,
+            "column": 30
+          }
+        },
+        "form": "composite",
+        "fields": [
+          "authorId",
+          "createdAt"
+        ]
+      },
+      {
+        "kind": "ReservedCustomKind",
+        "customKind": "test_generator",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 474,
+            "line": 22,
+            "column": 9
+          },
+          "end": {
+            "offset": 488,
+            "line": 22,
+            "column": 23
+          }
+        }
+      },
+      {
+        "kind": "ReservedScheduleTrigger",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 548,
+            "line": 27,
+            "column": 3
+          },
+          "end": {
+            "offset": 582,
+            "line": 27,
+            "column": 37
+          }
+        },
+        "cron": "0 * * * *"
+      },
+      {
+        "kind": "ReservedManualTrigger",
+        "span": {
+          "file": "fixtures/reserved-syntax.arch",
+          "start": {
+            "offset": 632,
+            "line": 32,
+            "column": 3
+          },
+          "end": {
+            "offset": 661,
+            "line": 32,
+            "column": 32
+          }
+        },
+        "label": "retry index"
+      }
+    ]
+  },
+  "diagnostics": []
+}"
+`;

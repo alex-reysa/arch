@@ -1,0 +1,24 @@
+target ts.node.fastify.postgres.prisma cache: redis
+
+model Post {
+  id: id
+  body: string
+  createdAt: timestamp default: now
+}
+
+integration PushNotifier {
+  kind: webhook
+  failure: best_effort
+}
+
+# Drift fixture: a developer has wrapped notification in the same DB transaction
+# as the insert in the generated workflow file, violating the
+# `notification_failure_does_not_rollback_post` guarantee. `arch check` should
+# detect drift on workflows/createPost.ts.
+workflow CreatePost {
+  trigger api POST /posts auth: none
+  step validate body
+  step insert Post
+  step call PushNotifier.send
+  guarantee notification_failure_does_not_rollback_post
+}

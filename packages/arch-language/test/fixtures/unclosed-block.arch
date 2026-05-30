@@ -1,0 +1,10 @@
+target ts.node.fastify.postgres.prisma cache: redis
+
+model User {
+  id: id
+  email: string indexed
+
+integration FeedCache {
+  kind: redis
+  failure: best_effort
+}

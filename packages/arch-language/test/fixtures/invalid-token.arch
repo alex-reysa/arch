@@ -1,0 +1,7 @@
+target ts.node.fastify.postgres.prisma cache: redis
+
+model Post {
+  id: id
+  body: string @
+  createdAt: timestamp default: now
+}

@@ -1,0 +1,5 @@
+target ts.node.fastify.postgres.prisma cache: redis
+
+policy sanitizeHtml {
+  body: "strip script tags
+}

@@ -1,0 +1,12 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+# Implicit many-to-many is not supported in V1.
+model User {
+  id: id
+  groups: Group many
+}
+
+model Group {
+  id: id
+  members: User many
+}

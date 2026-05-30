@@ -1,0 +1,41 @@
+target ts.node.fastify.postgres.prisma cache: redis
+
+model User {
+  id: id
+  email: string indexed
+  createdAt: timestamp default: now
+}
+
+model Post {
+  id: id
+  authorId: User
+  body: string
+  visibility: enum["public", "private", "followers"] default: "public" indexed
+  createdAt: timestamp default: now indexed
+}
+
+integration FeedCache {
+  kind: redis
+  failure: best_effort
+}
+
+integration PushNotifier {
+  kind: webhook
+  failure: best_effort
+}
+
+policy sanitizeHtml {
+  body: "strip script tags and on* attributes from inputs"
+}
+
+workflow CreatePost {
+  trigger api POST /posts auth: none
+  step validate body
+  step sanitize body using sanitizeHtml
+  step insert Post
+  step call FeedCache.update
+  step call PushNotifier.send
+  guarantee no_unsanitized_html_persisted
+  guarantee notification_failure_does_not_rollback_post
+  guarantee post_creation_p95_latency <= 250
+}

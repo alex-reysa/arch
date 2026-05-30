@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_postgres:
+        description: Run the gated Prisma/Postgres persistence test
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      run_integration:
+        description: Run the gated apply→install→verify integration test
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+env:
+  PNPM_VERSION: "9.0.0"
+
+jobs:
+  # Default checks: fast, hermetic, no external services or secrets required.
+  verify:
+    name: build · typecheck · test · diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Goldens are deterministic
+        run: |
+          pnpm update-goldens
+          git diff --exit-code || {
+            echo "::error::pnpm update-goldens produced changes — commit updated snapshots.";
+            exit 1;
+          }
+
+      - name: Whitespace / conflict-marker check
+        run: git diff --check
+
+  # The SocialFeed e2e transcript. Heavier (it really installs the generated
+  # project), but hermetic and deterministic — runs on every push/PR.
+  e2e:
+    name: e2e (SocialFeed transcript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run e2e
+        run: pnpm e2e
+
+  # Gated apply→install→verify integration test (workflow_dispatch opt-in).
+  integration:
+    name: integration (apply · verify)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_integration == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+      - run: |
+          corepack enable
+          corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: apply→install→verify
+        env:
+          ARCH_RUN_INTEGRATION: "1"
+        run: pnpm --filter @arch/cli test -- src/__tests__/apply-verify.test.ts
+
+  # Gated real Postgres persistence test (workflow_dispatch opt-in). Uses a
+  # service container — no secrets required.
+  postgres:
+    name: persistence (real Postgres)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_postgres == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: arch
+          POSTGRES_PASSWORD: arch
+          POSTGRES_DB: arch_app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U arch"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      ARCH_RUN_POSTGRES: "1"
+      DATABASE_URL: postgres://arch:arch@localhost:5432/arch_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+      - run: |
+          corepack enable
+          corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: create→read through Prisma/Postgres
+        run: pnpm --filter @arch/cli test -- src/__tests__/prisma-postgres.test.ts

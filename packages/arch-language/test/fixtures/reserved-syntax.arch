@@ -1,0 +1,34 @@
+target ts.node.fastify.postgres.prisma cache: redis
+
+# field-level `index` modifier (V1, supported)
+model User {
+  id: id
+  email: string index
+  createdAt: timestamp default: now indexed
+}
+
+// reserved: named/composite source-level indexes
+model Post {
+  id: id
+  authorId: User
+  body: string
+  createdAt: timestamp default: now indexed
+  index by_author (authorId)
+  index (authorId, createdAt)
+}
+
+/* reserved: custom kind: test_generator */
+custom PostTestGen {
+  kind: test_generator
+  file: "src/custom/postTestGen.ts"
+}
+
+workflow Hourly {
+  trigger schedule cron("0 * * * *")
+  step insert Post
+}
+
+workflow ManualReindex {
+  trigger manual("retry index")
+  step insert Post
+}

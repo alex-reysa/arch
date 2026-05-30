@@ -1,0 +1,14 @@
+target ts.node.fastify.postgres.prisma cache: none
+
+model Post {
+  id: id
+  body: string
+}
+
+workflow CreatePost {
+  trigger api POST /posts auth: none
+  step validate body
+  step insert Post
+  # Unknown short-form guarantees must produce a semantic error in V1.
+  guarantee never_loses_data_in_any_universe
+}

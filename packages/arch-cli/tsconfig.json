@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../arch-agents" },
+    { "path": "../arch-generator" },
+    { "path": "../arch-ir" },
+    { "path": "../arch-language" },
+    { "path": "../arch-sync" },
+    { "path": "../arch-verifier" }
+  ]
+}

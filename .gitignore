@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+
+# Test artifacts
+coverage/
+.vitest-cache/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Arch run scratch (per-project, not the metadata committed in generated repos)
+.arch/tmp/
+.arch/runs/
+.arch/locks/
+
+# Local agent scratch worktrees
+.worktrees/
+
+# Local scratch (not part of the project)
+expert-consultation.txt
