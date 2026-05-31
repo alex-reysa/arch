@@ -1,0 +1,14 @@
+{
+  "schema_version": "arch.bench.external.lock.v1",
+  "datasetVersion": "demo-2026-05-31.2",
+  "hash": "02e673024088c1ee67376a9967273ccbc9f8f9a658e8d65126afc73927824412",
+  "fileHashes": {
+    "manifest.json": "25a58a64b73f6225eee784dcd7d245cc69c085529cf7703dbb12b11778286290",
+    "services/demo-social/e01-visibility/backend.arch": "1b6cc0521c596fe6a0cb12cae305d10c81bf7954b2be39c67b021df092e2febd",
+    "services/demo-social/e02-pinned/backend.arch": "bb40c52dd72157fbd1ac10f6e3f5e32dfa6785b9c0b8721e515776686f9a8fed",
+    "services/demo-social/e03-remove-pinned/backend.arch": "1b6cc0521c596fe6a0cb12cae305d10c81bf7954b2be39c67b021df092e2febd",
+    "services/demo-social/e04-rename-pinned/backend.arch": "c8458548806e0192f1f2e74d4c87077a3053d00a1b741faada1034156d9b972c",
+    "services/demo-social/v00/backend.arch": "491c943ef0f18ea7e938df5b60d0e72d05557e2d39062e1b0b50222f0eec4421"
+  },
+  "lockedAt": "2026-05-31T10:54:55.066Z"
+}

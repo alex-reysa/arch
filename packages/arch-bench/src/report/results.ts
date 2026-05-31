@@ -4,6 +4,7 @@
  */
 
 import type { BaselineId } from "../manifest/schema.js";
+import type { ExternalOutcome, UnsupportedDiffType } from "../external/schema.js";
 
 export const BENCH_RESULTS_SCHEMA_VERSION = "arch.bench.results.v1" as const;
 
@@ -60,6 +61,20 @@ export interface BenchResult {
   readonly migrationCheckReason?: string;
   /** Whether a guarantee-bearing task is behaviorally verified or only declared. */
   readonly guaranteeVerification?: GuaranteeVerification;
+  /**
+   * Phase 2 external-validation fields. Present only on external-run records
+   * (an externally authored evolution); absent on the internal benchmark.
+   */
+  readonly externalOutcome?: ExternalOutcome;
+  readonly unsupportedDiffType?: UnsupportedDiffType;
+  /** One-line structured reason summary for an unsupported/blocked external evolution. */
+  readonly unsupportedReason?: string;
+  /** Coarse failure-class grouping derived from the external outcome. */
+  readonly failureClass?: string;
+  /** Frozen external dataset version this record was produced against. */
+  readonly externalDatasetVersion?: string;
+  /** Frozen external dataset content hash this record was produced against. */
+  readonly externalDatasetHash?: string;
   /** Task kind, denormalized onto the row so reports can group without the manifest. */
   readonly taskKind?: string;
   /** Run mode this record was produced under. */

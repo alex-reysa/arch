@@ -1,0 +1,77 @@
+{
+  "schema_version": "arch.bench.external.v1",
+  "datasetVersion": "demo-2026-05-31.2",
+  "fixture": true,
+  "notes": "SYNTHETIC but RUNNABLE demo dataset. Real .arch specs are evolved through the REAL Arch CLI by `external run` / the external-run-smoke integration test, so outcomes are observed, not declared. It exercises the Phase 2 external-validation plumbing only and is EXCLUDED from every benchmark claim. Real externally authored services, evolutions, authorship/source metadata, and holdout decisions are PENDING - EXTERNAL.",
+  "services": [
+    {
+      "id": "demo-social",
+      "title": "Demo Social (synthetic, runnable)",
+      "fixture": true,
+      "baseSpec": "services/demo-social/v00/backend.arch",
+      "notes": "Synthetic social-feed-shaped service with real, runnable .arch specs.",
+      "authorship": {
+        "author": "arch-bench-demo (synthetic)",
+        "source": "fixture://demo/social",
+        "domain": "social",
+        "heldOut": false
+      }
+    }
+  ],
+  "evolutions": [
+    {
+      "id": "demo-social-e01",
+      "service": "demo-social",
+      "order": 1,
+      "kind": "enum_change",
+      "intent": "Add a post visibility enum (public/private/followers), defaulted and indexed.",
+      "fixture": true,
+      "fromSpec": "services/demo-social/v00/backend.arch",
+      "toSpec": "services/demo-social/e01-visibility/backend.arch",
+      "expectedOutcome": "apply_passes"
+    },
+    {
+      "id": "demo-social-e02",
+      "service": "demo-social",
+      "order": 2,
+      "kind": "additive_field",
+      "intent": "Add a boolean `pinned` flag to Post, defaulted to false.",
+      "fixture": true,
+      "fromSpec": "services/demo-social/e01-visibility/backend.arch",
+      "toSpec": "services/demo-social/e02-pinned/backend.arch",
+      "expectedOutcome": "apply_passes"
+    },
+    {
+      "id": "demo-social-e03",
+      "service": "demo-social",
+      "order": 3,
+      "kind": "destructive_block",
+      "intent": "Remove the `pinned` field from Post (a destructive, data-losing change).",
+      "fixture": true,
+      "fromSpec": "services/demo-social/e02-pinned/backend.arch",
+      "toSpec": "services/demo-social/e03-remove-pinned/backend.arch",
+      "expectedOutcome": "apply_blocks"
+    },
+    {
+      "id": "demo-social-e04",
+      "service": "demo-social",
+      "order": 4,
+      "kind": "destructive_block",
+      "intent": "Rename Post.pinned to Post.isPinned (no renamedFrom metadata, so it degrades to drop + add).",
+      "fixture": true,
+      "fromSpec": "services/demo-social/e02-pinned/backend.arch",
+      "toSpec": "services/demo-social/e04-rename-pinned/backend.arch",
+      "expectedOutcome": "apply_blocks",
+      "unsupportedDiffType": "field_rename",
+      "unsupportedReason": {
+        "code": "field_rename",
+        "summary": "No renamedFrom metadata, so a rename is seen as drop + add (destructive).",
+        "detail": "Arch cannot tell pinned -> isPinned is a rename, so it plans a destructive removal and refuses to apply."
+      },
+      "suggestedNextSteps": [
+        "add renamedFrom metadata to the grammar/IR",
+        "emit a rename migration instead of drop + add"
+      ]
+    }
+  ]
+}

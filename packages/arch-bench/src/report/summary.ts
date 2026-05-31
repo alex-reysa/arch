@@ -5,6 +5,7 @@
  */
 
 import { BASELINE_IDS, TASK_KINDS, isLiveBaseline, type BaselineId } from "../manifest/schema.js";
+import { EXTERNAL_OUTCOMES, isUnsupportedCapability } from "../external/schema.js";
 import type { BenchResult, RunResults } from "./results.js";
 
 export interface TaskIndexEntry {
@@ -196,6 +197,76 @@ function guaranteeVerificationTable(results: readonly BenchResult[]): string {
   ].join("\n");
 }
 
+/**
+ * External-validation section, emitted ONLY when the run has external records
+ * (rows with an `externalOutcome`). Internal-only runs produce no section, so
+ * their summaries are unchanged. The full authorship/domain breakdown and the
+ * fixture banner live in the dedicated `external-summary.md`.
+ */
+function externalSection(results: readonly BenchResult[]): string {
+  const ext = results.filter((r) => r.externalOutcome !== undefined);
+  if (ext.length === 0) return "";
+
+  const outcomeCounts = new Map<string, number>();
+  for (const r of ext) outcomeCounts.set(r.externalOutcome!, (outcomeCounts.get(r.externalOutcome!) ?? 0) + 1);
+  const outcomeRows = EXTERNAL_OUTCOMES.filter((o) => outcomeCounts.has(o)).map((o) =>
+    row([o, outcomeCounts.get(o) ?? 0]),
+  );
+
+  // Unsupported (capability-gap) rate by task kind.
+  const kinds = [...new Set(ext.map((r) => r.taskKind ?? "(unknown)"))].sort();
+  const kindRows = kinds.map((k) => {
+    const rs = ext.filter((r) => (r.taskKind ?? "(unknown)") === k);
+    const uns = rs.filter((r) => r.externalOutcome && isUnsupportedCapability(r.externalOutcome)).length;
+    return row([k, rs.length, uns, pct(uns, rs.length)]);
+  });
+
+  const reasonCounts = new Map<string, number>();
+  for (const r of ext) {
+    if (!r.externalOutcome || !isUnsupportedCapability(r.externalOutcome)) continue;
+    const reason = r.unsupportedReason ?? r.unsupportedDiffType ?? "unspecified";
+    reasonCounts.set(reason, (reasonCounts.get(reason) ?? 0) + 1);
+  }
+  const reasonRows = [...reasonCounts.entries()]
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))
+    .slice(0, 10)
+    .map(([reason, n]) => row([reason, n]));
+
+  const version = ext.find((r) => r.externalDatasetVersion)?.externalDatasetVersion;
+  const hash = ext.find((r) => r.externalDatasetHash)?.externalDatasetHash;
+
+  const parts: string[] = [
+    "### External validation",
+    "",
+    "External authorship/domain breakdown and fixture status: see `external-summary.md`.",
+    "",
+  ];
+  if (version) parts.push(`- External dataset version: \`${version}\``);
+  if (hash) parts.push(`- External dataset hash: \`${hash}\``);
+  if (version || hash) parts.push("");
+  parts.push(
+    "#### External outcomes",
+    "",
+    row(["Outcome", "Count"]),
+    row(["---", "---"]),
+    ...(outcomeRows.length > 0 ? outcomeRows : [row(["(none)", 0])]),
+    "",
+    "#### Unsupported rate by task kind",
+    "",
+    row(["Kind", "Total", "Unsupported", "Unsupported %"]),
+    row(["---", "---", "---", "---"]),
+    ...(kindRows.length > 0 ? kindRows : [row(["(none)", 0, 0, "—"])]),
+    "",
+    "#### Top unsupported reasons",
+    "",
+    row(["Reason", "Count"]),
+    row(["---", "---"]),
+    ...(reasonRows.length > 0 ? reasonRows : [row(["(none)", 0])]),
+    "",
+  );
+  return parts.join("\n");
+}
+
 export function toSummaryMarkdown(run: RunResults, index: TaskIndex): string {
   const subjectOf = (r: BenchResult) => index[r.taskId]?.subject ?? "(unknown)";
   const kindOf = (r: BenchResult) => index[r.taskId]?.kind ?? "(unknown)";
@@ -219,6 +290,9 @@ export function toSummaryMarkdown(run: RunResults, index: TaskIndex): string {
   ];
   const variance = liveVarianceTable(run.results, index);
   if (variance) parts.push(variance);
+
+  const external = externalSection(run.results);
+  if (external) parts.push(external);
 
   return parts.join("\n").replace(/\n+$/, "\n");
 }

@@ -25,9 +25,9 @@ Coding-agent-completable work:
 - `[DONE]` Multi-model benchmark infrastructure and the 8-baseline manifest.
 - `[DONE]` Phase 1 measurement foundation: named workflow-step identity, executable dbCheck runner, migration result fields/scoring, strict validation, run modes, report fields, and focused tests.
 - `[DONE]` Strict validation now passes on the internal 100-task manifest via verifier-backed guarantee assertions while latency guarantees remain excluded from behavioral correctness claims.
-- `[PENDING - AGENT]` External-validation plumbing: `benchmarks/external/`, dataset hashing/versioning, `ExternalOutcome`, unsupported-rate reporting, failure-analysis JSON, and external report dimensions.
-- `[PENDING - AGENT]` Product-boundary implementation once external failures justify it: typed extension points, capability matrix, migration capability matrix, and brownfield harness.
-- `[PENDING - AGENT]` Reproducibility packaging such as Docker scripts, raw-log publishing layout, and summary tables for the final validation run.
+- `[DONE]` External-validation plumbing: `benchmarks/external/`, dataset hashing/versioning, `ExternalOutcome`, unsupported-rate reporting, failure-analysis JSON, and external report dimensions. Exercised by a clearly-marked fixture/demo dataset; the real external dataset is `[PENDING - EXTERNAL]`.
+- `[PARTIAL]` Product-boundary implementation: the capability matrix and migration capability matrix are `[DONE]`; typed extension points and the brownfield harness remain `[PENDING - AGENT]` until external failures justify them.
+- `[DONE]` Reproducibility packaging: Docker compose + a one-shot validation script, the artifact-directory convention / raw-log layout, and summary tables for the final validation run.
 
 Requires user/external input:
 
@@ -119,7 +119,7 @@ Latency guarantees:
 
 ## Phase 2: External Validation Starts Immediately
 
-Status: `[PENDING - AGENT]` for plumbing, `[PENDING - EXTERNAL]` for the actual external dataset.
+Status: `[DONE]` for plumbing, `[PENDING - EXTERNAL]` for the actual external dataset. See docs/PHASE2_EXTERNAL_PLUMBING.md.
 
 `[PENDING - EXTERNAL]` Collect at least 3 externally authored backend workflow service specs before implementing expressiveness fixes, then freeze the initial import and record all unsupported cases.
 
@@ -127,14 +127,14 @@ The point is not to pass at first. The point is to discover what breaks.
 
 Formalize external validation data:
 
-- `[PENDING - AGENT]` Add `benchmarks/external/` or an equivalent manifest section for externally authored services.
-- `[PENDING - AGENT]` Each external task records author/source, whether it was held out during development, and unsupported outcome if Arch blocks it.
-- `[PENDING - AGENT]` Unsupported diffs are first-class results, not removed from the dataset.
-- `[PENDING - AGENT]` Once an external service is imported, its initial spec and evolution list are content-hashed.
-- `[PENDING - AGENT]` Any post-import modification creates a new dataset version and must be reported.
+- `[DONE]` Add `benchmarks/external/` or an equivalent manifest section for externally authored services.
+- `[DONE]` Each external task records author/source, whether it was held out during development, and unsupported outcome if Arch blocks it.
+- `[DONE]` Unsupported diffs are first-class results, not removed from the dataset.
+- `[DONE]` Once an external service is imported, its initial spec and evolution list are content-hashed.
+- `[DONE]` Any post-import modification creates a new dataset version and must be reported.
 - `[PENDING - EXTERNAL]` Provide the actual external service specs, evolutions, authorship/source metadata, and holdout decisions.
 
-`[PENDING - AGENT]` Classify every external evolution:
+`[DONE]` Classify every external evolution:
 
 ```ts
 type ExternalOutcome =
@@ -150,12 +150,12 @@ type ExternalOutcome =
 
 Report unsupported outcomes as product metrics:
 
-- `[PENDING - AGENT]` `unsupported_rate_by_kind`
-- `[PENDING - AGENT]` `unsupported_rate_by_external_author`
-- `[PENDING - AGENT]` `unsupported_rate_by_domain`
-- `[PENDING - AGENT]` `unsupported_reasons_top_10`
+- `[DONE]` `unsupported_rate_by_kind`
+- `[DONE]` `unsupported_rate_by_external_author`
+- `[DONE]` `unsupported_rate_by_domain`
+- `[DONE]` `unsupported_reasons_top_10`
 
-`[PENDING - AGENT]` Required failure analysis output for every failed external task:
+`[DONE]` Required failure analysis output for every failed external task:
 
 ```json
 {
@@ -205,9 +205,9 @@ Improve product boundaries around human code:
   - Spec evolution does not break it silently.
   - If the contract changes, Arch emits a clear migration/error.
 
-`[PENDING - AGENT]` Add a capability matrix for supported/blocked diffs with structured reasons and suggested next steps.
+`[DONE]` Add a capability matrix for supported/blocked diffs with structured reasons and suggested next steps.
 
-`[PENDING - AGENT]` Explicitly classify migration support:
+`[DONE]` Explicitly classify migration support (see the migration capability matrix):
 
 - Additive nullable.
 - Additive required with default.
@@ -242,9 +242,9 @@ Research/publication threshold:
 
 - `[PENDING - EXTERNAL]` At least 5 external services.
 - `[PENDING - EXTERNAL]` At least 50 external evolutions.
-- `[PENDING - AGENT]` Frozen dataset hash before final run.
-- `[PENDING - AGENT]` Reproducible Docker setup.
-- `[PENDING - AGENT]` Raw logs, diffs, failures, costs, and timings published.
+- `[DONE]` Frozen dataset hash before final run (external dataset lock tooling).
+- `[DONE]` Reproducible Docker setup (`scripts/bench-validation/`).
+- `[PARTIAL]` Raw logs, diffs, failures, costs, and timings: the artifact-directory layout is defined and produced per run; actual publication is a release-time action.
 - `[PENDING - EXTERNAL]` Independent oracles for all claimed behavioral guarantees.
 
 `[PENDING - EXTERNAL]` Continue as a platform only if the validation gate passes. If it fails on expressiveness or user ergonomics, pivot to a smaller product: typed service scaffolding plus migration-aware regeneration.
@@ -271,8 +271,8 @@ Unit tests:
 - `[DONE]` Manifest strict validation rejects missing oracles for `apply_passes` and guarantee tasks.
 - `[DONE]` Migration check runner records passed, failed, skipped, and not-applicable statuses.
 - `[DONE]` Scoring fails validation-mode migration tasks unless `migrationCheckStatus === "passed"`.
-- `[PENDING - AGENT]` External outcome classification preserves unsupported cases as reportable results.
-- `[PENDING - AGENT]` Dataset locking detects post-import edits and creates a new dataset version.
+- `[DONE]` External outcome classification preserves unsupported cases as reportable results.
+- `[DONE]` Dataset locking detects post-import edits and creates a new dataset version.
 
 Integration tests:
 
@@ -281,7 +281,7 @@ Integration tests:
 - `[DONE]` Isolated mode runs a task from `fromSpec` without replaying previous baseline failures.
 - `[DONE]` Sequential restore mode recovers after a failed baseline before the next task.
 - `[DONE]` Strict benchmark validation passes only after required oracles and db checks are wired.
-- `[PENDING - AGENT]` An external validation task that hits an unsupported capability produces structured failure analysis.
+- `[DONE]` An external validation task that hits an unsupported capability produces structured failure analysis.
 - `[PENDING - EXTERNAL]` A brownfield project with custom code and one manual integration survives a spec evolution.
 
 Validation commands:
@@ -304,9 +304,9 @@ ARCH_BENCH_DB=1 ARCH_BENCH_DATABASE_URL=<url> pnpm bench:paper -- --task-mode is
 - `[DONE]` Named workflow step edits are non-destructive and stable across insertion/reorder cases.
 - `[DONE]` Every safe/guarantee-bearing internal task has an independent oracle or explicit verifier-backed assertion.
 - `[DONE]` Latency guarantees are either measured by a real oracle or excluded from correctness claims.
-- `[PARTIAL]` Benchmark reports separate results by task kind, run mode, baseline, model, and migration/guarantee status. Failure class, unsupported diff type, and external dataset version remain pending with Phase 2.
+- `[DONE]` Benchmark reports separate results by task kind, run mode, baseline, model, and migration/guarantee status, plus the Phase 2 external dimensions (external outcome, failure class, unsupported diff type, unsupported reason, external dataset version/hash). External dimensions populate only on external runs; real external data is `[PENDING - EXTERNAL]`.
 - `[PENDING - EXTERNAL]` At least 3 external services and 20 external evolutions run without modifying the dataset to fit Arch after first import.
-- `[PENDING - AGENT]` The external dataset is frozen before final validation runs; any edits after first import are versioned and disclosed.
+- `[DONE]` The external dataset is frozen before final validation runs; any edits after first import are versioned and disclosed (dataset lock tooling + `external lock --check`). Awaits a real dataset to freeze.
 - `[PENDING - EXTERNAL]` A platform continuation decision is based on external validation metrics, not internal benchmark pass rate.
 - `[DONE]` Final claim is narrow and defensible: Arch synchronizes generated backend substrates under typed diffs, ownership boundaries, verification gates, and drift repair.
 

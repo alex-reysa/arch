@@ -53,6 +53,84 @@ export { runSuite, type SuiteOptions } from "./runner/orchestrator.js";
 export { getBaseline, BASELINES } from "./baselines/registry.js";
 export type { Baseline, EvolveContext, EvolveOutcome } from "./baselines/types.js";
 
+// Phase 2 external-validation plumbing (representation, lock, classify, report).
+export {
+  EXTERNAL_MANIFEST_SCHEMA_VERSION,
+  EXTERNAL_OUTCOMES,
+  UNSUPPORTED_DIFF_TYPES,
+  isExternalOutcome,
+  isUnsupportedDiffType,
+  isPassOrExplicitBlock,
+  isUnsupportedCapability,
+  type ExternalManifest,
+  type ExternalService,
+  type ExternalEvolution,
+  type ExternalAuthorship,
+  type ExternalOutcome,
+  type UnsupportedDiffType,
+  type UnsupportedReason,
+  type ExternalFailureAnalysis,
+  type FailurePriority,
+} from "./external/schema.js";
+export { validateExternalManifest, type ExternalValidation } from "./external/validate.js";
+export {
+  loadExternalManifest,
+  readDatasetContent,
+  ExternalManifestError,
+  type LoadedExternalManifest,
+} from "./external/load.js";
+export {
+  computeDatasetHash,
+  buildDatasetLock,
+  diffDatasetLock,
+  DATASET_LOCK_SCHEMA_VERSION,
+  type DatasetContent,
+  type DatasetHash,
+  type DatasetLock,
+  type DatasetLockDiff,
+} from "./external/dataset-lock.js";
+export {
+  classifyExternalOutcome,
+  buildFailureAnalysis,
+  failureClassOf,
+  DEFAULT_EXCESSIVE_CHURN_THRESHOLD,
+  type ExternalSignals,
+  type FailureAnalysisInput,
+} from "./external/classify.js";
+export {
+  computeExternalMetrics,
+  type ExternalMetrics,
+  type ExternalResultRow,
+  type RateBucket,
+  type UnsupportedReasonCount,
+} from "./external/metrics.js";
+export {
+  DIFF_CAPABILITY_MATRIX,
+  MIGRATION_CAPABILITY_MATRIX,
+  capabilityMatrixJson,
+  renderCapabilityMatrixMarkdown,
+  renderDiffCapabilityMatrixMarkdown,
+  renderMigrationCapabilityMatrixMarkdown,
+  type CapabilityEntry,
+  type CapabilitySupport,
+  type MigrationCapabilityEntry,
+  type MigrationDataPreserving,
+  type CapabilityMatrixJson,
+} from "./external/capability.js";
+export {
+  projectExternalToBenchManifest,
+  ExternalNotRunnableError,
+  type ProjectOptions,
+} from "./external/project.js";
+export {
+  externalResultRows,
+  externalResultRowsFromExpectations,
+  classifyBenchResult,
+  collectFailureAnalyses,
+  toExternalSummaryMarkdown,
+  type ExternalSummaryOptions,
+} from "./external/report.js";
+
 export {
   runLiveAgent,
   buildLiveAgentInvocation,

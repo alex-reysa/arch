@@ -254,9 +254,45 @@ this is the measurement foundation, not external proof:
 | Workflow edits are stable | named-step IR/diff identity + insertion/reorder tests | Wired (internal) |
 | Migration preservation | real `dbCheck` execution + strict scoring gate + Postgres integration test | Wired + **evidence captured** (social-feed-12 / task-tracker-12 `passed` against throwaway Postgres 16); `test-integration/migration-dbcheck-postgres.test.ts` asserts it (double-gated on `ARCH_BENCH_SMOKE=1` + a DB URL, else skips) |
 | Guarantee oracles | strict validation + verifier-backed `guaranteeAssertion` per guarantee_change task + `declared_but_not_behaviorally_verified` reporting | `--strict` passes; 10 latency/audit guarantees structurally asserted, not behaviorally verified (no load oracle) |
-| External usefulness | — | Unproven (Phase 2: external specs) |
+| External usefulness | external-validation plumbing (represent/lock/run/classify/report) + capability matrices | Plumbing ready; real external dataset pending (fixture/demo only) |
 
 The internal 100-task benchmark is regression coverage, not external proof.
+
+## Phase 2 — external validation (plumbing)
+
+The benchmark can now **represent, lock, run, classify, and report** externally
+authored service evolutions. The committed `benchmarks/external/` data is a
+clearly-marked **fixture/demo** — it exercises the plumbing and is **excluded
+from every claim**. Real external services/evolutions remain pending external
+input. Full reference: [docs/PHASE2_EXTERNAL_PLUMBING.md](../../docs/PHASE2_EXTERNAL_PLUMBING.md).
+
+- **Representation** — `ExternalManifest` (`src/external/schema.ts`): services with
+  `author`/`source`/`domain`/`heldOut`, ordered evolutions, an `ExternalOutcome`
+  per evolution. Unsupported/blocked outcomes are first-class (kept, never
+  dropped) with a structured `unsupportedReason` + `failureAnalysis`.
+- **Lock** — content hash + per-file hashes; post-import edits must bump
+  `datasetVersion` (`external lock --check` fails an unversioned change).
+- **Classify** — pure outcome classification with documented precedence, plus the
+  required per-failure `failures/<task>.failure.json`.
+- **Metrics** — `unsupported_rate_by_kind` / `_by_external_author` / `_by_domain`,
+  `unsupported_reasons_top_10`, and a pass-or-explicit-block rate.
+- **Capability matrices** — an honest map of which diff/migration changes Arch can
+  sync today, with structured reasons + next steps.
+
+```bash
+tsx packages/arch-bench/src/main.ts external validate
+tsx packages/arch-bench/src/main.ts external lock --write   # then --check
+tsx packages/arch-bench/src/main.ts external run                           # real run through the Arch CLI
+tsx packages/arch-bench/src/main.ts capability-matrix [--format json]
+# Reproducible validation run (throwaway Postgres up → strict slice → down):
+scripts/bench-validation/run-validation.sh
+```
+
+New report fields: `results.csv` gains `externalOutcome`, `unsupportedDiffType`,
+`unsupportedReason`, `failureClass`, `externalDatasetVersion`,
+`externalDatasetHash`; `summary.md` gains an External-validation section when
+external records are present. The validation artifact-directory convention is
+defined in [docs/PHASE2_EXTERNAL_PLUMBING.md](../../docs/PHASE2_EXTERNAL_PLUMBING.md).
 
 ## Design notes
 
