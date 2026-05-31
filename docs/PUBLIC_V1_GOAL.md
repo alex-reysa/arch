@@ -50,7 +50,7 @@ product claim is credible to outside users.
 Public V1 must prove the core inversion from `founding-docs/CONCEPT.md`:
 
 ```text
-Implementation code becomes the build artifact.
+The Arch-owned generated service substrate becomes the build artifact.
 System intent becomes the source of truth.
 ```
 

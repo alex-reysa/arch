@@ -1,0 +1,25 @@
+{
+  "$schema": "arch.bench.guarantee-assertion.v1",
+  "task": "inventory-13",
+  "workflow": "CreateItem",
+  "kind": "latency",
+  "threshold": "<= 500ms",
+  "intent": "Add a second p95 latency guarantee (item_persist_p95_latency <= 500) to the CreateItem workflow.",
+  "declaredGuarantees": [
+    "guarantee create_item_p95_latency <= 300",
+    "guarantee item_persist_p95_latency <= 500"
+  ],
+  "verifierBacked": {
+    "asserts": [
+      "The guarantee is declared in the canonical IR produced from the evolved spec.",
+      "Arch deterministically regenerates the CreateItem workflow under ownership boundaries and emits a guarantee test scaffold traceable to the IR.",
+      "arch check reports no hash / missing-file / static-guarantee drift for the regenerated artifacts."
+    ],
+    "verifiedBy": "arch parse --emit-ir -> canonical arch.ir.v1 -> generate -> arch check"
+  },
+  "doesNotVerify": [
+    "Real p95 latency under representative production load.",
+    "Behavioral verification of the latency bound requires a load/benchmark oracle, deferred to Phase 2+ (roadmap: \"Latency guarantees\")."
+  ],
+  "guaranteeVerification": "declared_but_not_behaviorally_verified"
+}

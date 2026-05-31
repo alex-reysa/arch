@@ -1,0 +1,24 @@
+{
+  "$schema": "arch.bench.guarantee-assertion.v1",
+  "task": "task-tracker-04",
+  "workflow": "CreateTask",
+  "kind": "latency",
+  "threshold": "<= 300ms",
+  "intent": "Add a p95 latency guarantee (<= 300ms) to the CreateTask workflow.",
+  "declaredGuarantees": [
+    "guarantee createtask_p95_latency <= 300"
+  ],
+  "verifierBacked": {
+    "asserts": [
+      "The guarantee is declared in the canonical IR produced from the evolved spec.",
+      "Arch deterministically regenerates the CreateTask workflow under ownership boundaries and emits a guarantee test scaffold traceable to the IR.",
+      "arch check reports no hash / missing-file / static-guarantee drift for the regenerated artifacts."
+    ],
+    "verifiedBy": "arch parse --emit-ir -> canonical arch.ir.v1 -> generate -> arch check"
+  },
+  "doesNotVerify": [
+    "Real p95 latency under representative production load.",
+    "Behavioral verification of the latency bound requires a load/benchmark oracle, deferred to Phase 2+ (roadmap: \"Latency guarantees\")."
+  ],
+  "guaranteeVerification": "declared_but_not_behaviorally_verified"
+}

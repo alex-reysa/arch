@@ -16,6 +16,7 @@ import { BASELINE_IDS, isLiveBaseline, type BaselineId } from "./manifest/schema
 import { buildTaskIndex, loadManifest } from "./manifest/load.js";
 import { validateManifest, validateManifestStrict } from "./manifest/validate.js";
 import { parseFailurePolicy, parseTaskMode } from "./runner/run-modes.js";
+import { resolveDatabaseUrl } from "./runner/db-check.js";
 import type { FailurePolicy, TaskMode } from "./report/results.js";
 import { runSuite } from "./runner/orchestrator.js";
 import { buildRunResults, type RunResults } from "./report/results.js";
@@ -187,6 +188,7 @@ async function runCommand(argv: readonly string[]): Promise<number> {
 
   const liveTransports = live && wantsLive ? buildLiveTransports(liveProviders, liveConfig) : undefined;
 
+  const databaseUrl = resolveDatabaseUrl(process.env);
   const validationMode = args.strict || args.suite === "paper";
   process.stdout.write(
     `  mode: task-mode=${args.taskMode ?? "sequential"} failure-policy=${args.failurePolicy ?? "continue-contaminated"} strict=${validationMode}\n`,
@@ -214,6 +216,7 @@ async function runCommand(argv: readonly string[]): Promise<number> {
     keepWorkspace: args.keep,
     ...(args.taskMode ? { taskMode: args.taskMode } : {}),
     ...(args.failurePolicy ? { failurePolicy: args.failurePolicy } : {}),
+    ...(databaseUrl !== undefined ? { databaseUrl } : {}),
     validationMode,
     log: (m) => process.stdout.write(m + "\n"),
   });

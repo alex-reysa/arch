@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseDbCheckResult, resolveDatabaseUrl } from "../src/runner/db-check.js";
+import { parseDbCheckResult, resolveDatabaseUrl, runDbCheck } from "../src/runner/db-check.js";
 
 describe("parseDbCheckResult", () => {
   it("parses a passed result with preservation", () => {
@@ -58,5 +58,26 @@ describe("resolveDatabaseUrl", () => {
   });
   it("returns undefined when neither is set", () => {
     expect(resolveDatabaseUrl({})).toBeUndefined();
+  });
+});
+
+describe("runDbCheck URL resolution", () => {
+  it("short-circuits to skipped (no spawn) when neither env nor override has a URL", async () => {
+    const res = await runDbCheck({ scriptPath: "/nonexistent/db-check.ts", projectDir: "/tmp", env: {} });
+    expect(res.status).toBe("skipped");
+    expect(res.reason).toMatch(/no DATABASE_URL/i);
+  });
+
+  it("does not short-circuit when an explicit databaseUrl override is provided", async () => {
+    // With a URL present it proceeds to spawn; the bogus script path then makes
+    // it fail (not skip), proving the override defeats the no-URL skip path.
+    const res = await runDbCheck({
+      scriptPath: "/nonexistent/db-check.ts",
+      projectDir: "/tmp",
+      env: {},
+      databaseUrl: "postgres://example/db",
+      timeoutMs: 20000,
+    });
+    expect(res.status).not.toBe("skipped");
   });
 });

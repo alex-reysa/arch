@@ -30,11 +30,11 @@ import { applyDriftScripts, measureAndRepairArchDrift } from "./drift.js";
 import { scorePassed, type TaskSignals } from "./score.js";
 import { runDbCheck } from "./db-check.js";
 import { DEFAULT_FAILURE_POLICY, DEFAULT_TASK_MODE, planTaskExecution } from "./run-modes.js";
+import { computeGuaranteeVerification } from "./guarantee.js";
 import type {
   BenchResult,
   DriftRecall,
   FailurePolicy,
-  GuaranteeVerification,
   MigrationCheckStatus,
   TaskMode,
 } from "../report/results.js";
@@ -63,6 +63,12 @@ export interface SuiteOptions {
   readonly validationMode?: boolean;
   /** Per-task db-check timeout (ms). */
   readonly dbCheckTimeoutMs?: number;
+  /**
+   * DB URL for migration dbChecks, threaded from the bench process env. The
+   * hermetic workspace env does not carry it, so without this a configured
+   * Postgres would never reach the dbCheck (it would report `skipped`).
+   */
+  readonly databaseUrl?: string;
 }
 
 export async function runSuite(opts: SuiteOptions): Promise<BenchResult[]> {
@@ -403,20 +409,9 @@ async function runMigrationCheck(
     scriptPath: resolvePath(opts.loaded, task.dbCheck),
     projectDir: ws.dir,
     env: ws.env,
+    ...(opts.databaseUrl !== undefined ? { databaseUrl: opts.databaseUrl } : {}),
     ...(opts.dbCheckTimeoutMs !== undefined ? { timeoutMs: opts.dbCheckTimeoutMs } : {}),
   });
-}
-
-/**
- * Classify a guarantee_change task as behaviorally verified or merely declared.
- * A guarantee with no behavioral oracle / verifier assertion is
- * `declared_but_not_behaviorally_verified` and excluded from correctness claims.
- */
-function computeGuaranteeVerification(task: BenchTask): GuaranteeVerification | undefined {
-  if (task.kind !== "guarantee_change") return undefined;
-  const behavioral = task.oracleTests.length > 0 || task.guaranteeAssertion != null;
-  if (behavioral) return "behavioral";
-  return task.guaranteeVerification ?? "declared_but_not_behaviorally_verified";
 }
 
 function capTasks(tasks: readonly BenchTask[], max?: number): BenchTask[] {

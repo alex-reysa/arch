@@ -144,6 +144,7 @@ benchmarks/
   subjects/<subject>/tasks/<NN-name>/
     backend.arch                             # the target spec (full, not a delta)
     oracles/*.test.ts                        # behavior oracles
+    assertions/*.guarantee.json              # verifier-backed guarantee assertions
     drift/*.ts                               # drift-injection scripts
     db-check.ts                              # Postgres data-preservation check (gated)
 ```
@@ -194,21 +195,54 @@ passes if its `dbCheck` actually ran and reported `passed` — no
 migration-preservation claim is made without an executed `dbCheck`. Real checks
 need `pg` (a repo devDependency) and a Postgres URL.
 
+The bench process reads `ARCH_BENCH_DATABASE_URL` / `DATABASE_URL` from its own
+environment and threads the URL into each `dbCheck` (the hermetic per-task
+workspace env intentionally does not inherit it). Captured evidence against a
+throwaway Postgres 16:
+
+```text
+social-feed-12   status=passed preserved=true  "additive migration preserves data (Post.viewCount); 2 migration(s) applied"
+task-tracker-12  status=passed preserved=true  "additive migration preserves data (Task.completedCount); 2 migration(s) applied"
+```
+
+Reproduce (CLI run, or the gated integration test):
+
+```bash
+docker run -d --name arch-bench-pg -e POSTGRES_USER=arch -e POSTGRES_PASSWORD=arch \
+  -e POSTGRES_DB=arch_bench -p 55432:5432 postgres:16-alpine
+
+# (a) full CLI slice
+ARCH_BENCH_DB=1 ARCH_BENCH_DATABASE_URL=postgres://arch:arch@localhost:55432/arch_bench \
+  pnpm exec tsx packages/arch-bench/src/main.ts run --suite smoke \
+    --subjects social-feed,task-tracker --baselines arch-typed-sync \
+    --max-tasks 12 --task-mode isolated --failure-policy restore-from-spec --strict
+
+# (b) the committed integration test (skips automatically with no DB URL)
+ARCH_BENCH_SMOKE=1 ARCH_BENCH_DATABASE_URL=postgres://arch:arch@localhost:55432/arch_bench \
+  pnpm --filter @arch/bench test -- migration-dbcheck-postgres
+```
+
 ## Strict validation
 
 `arch-bench validate --strict` requires every `apply_passes` task to have an
 oracle (`oracleTests`, or a `dbCheck` for migration tasks) and every
 `guarantee_change` task to have a behavioral oracle or a verifier-backed
 `guaranteeAssertion`. Structural validation always runs; `--strict` adds the
-oracle requirements. Today the 10 latency `guarantee_change` tasks have no
-behavioral oracle yet, so `--strict` reports them (the honest "unproven" state).
+oracle requirements. All 10 `guarantee_change` tasks now carry a verifier-backed
+`guaranteeAssertion` (under each task's `assertions/`), so `--strict` exits 0.
+Those assertions back only the *structural* claim — the guarantee is declared in
+the IR and Arch regenerates a traceable scaffold — so all 10 stay
+`declared_but_not_behaviorally_verified` (see below) until a load oracle exists.
 
 ## Guarantee verification
 
 Latency/guarantee tasks with no measurable load oracle are marked
 `declared_but_not_behaviorally_verified` and **excluded from correctness
-claims**; the summary reports them separately. A guarantee only counts as
-`behavioral` when backed by a real oracle/assertion.
+claims**; the summary reports them separately. A structural `guaranteeAssertion`
+satisfies strict validation but does **not** promote a guarantee to
+`behavioral`: only a real behavioral oracle (or an explicit `behavioral`
+classification) counts. The manifest's `guaranteeVerification` field is the
+honest source of truth.
 
 ## Validation-gate status (Phase 1)
 
@@ -218,8 +252,8 @@ this is the measurement foundation, not external proof:
 | Claim | Evidence wired | Status |
 | --- | --- | --- |
 | Workflow edits are stable | named-step IR/diff identity + insertion/reorder tests | Wired (internal) |
-| Migration preservation | real `dbCheck` execution + strict scoring gate | Wired; needs a Postgres paper run for evidence |
-| Guarantee oracles | strict validation + `declared_but_not_behaviorally_verified` reporting | 10 latency guarantees still unproven (no load oracle) |
+| Migration preservation | real `dbCheck` execution + strict scoring gate + Postgres integration test | Wired + **evidence captured** (social-feed-12 / task-tracker-12 `passed` against throwaway Postgres 16); `test-integration/migration-dbcheck-postgres.test.ts` asserts it (double-gated on `ARCH_BENCH_SMOKE=1` + a DB URL, else skips) |
+| Guarantee oracles | strict validation + verifier-backed `guaranteeAssertion` per guarantee_change task + `declared_but_not_behaviorally_verified` reporting | `--strict` passes; 10 latency/audit guarantees structurally asserted, not behaviorally verified (no load oracle) |
 | External usefulness | — | Unproven (Phase 2: external specs) |
 
 The internal 100-task benchmark is regression coverage, not external proof.

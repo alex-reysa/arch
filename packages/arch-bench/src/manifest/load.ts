@@ -52,6 +52,9 @@ export async function loadManifest(manifestPath: string): Promise<LoadedManifest
     if (t.dbCheck && !existsSync(resolve(dir, t.dbCheck))) {
       errors.push(`task ${t.id}: dbCheck not found on disk: ${t.dbCheck}`);
     }
+    if (t.guaranteeAssertion && !existsSync(resolve(dir, t.guaranteeAssertion))) {
+      errors.push(`task ${t.id}: guaranteeAssertion not found on disk: ${t.guaranteeAssertion}`);
+    }
   }
 
   if (errors.length > 0) {

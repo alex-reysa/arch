@@ -67,8 +67,8 @@ agents 24 (+1 skipped live test), cli 28 (+2 skipped gated tests).
 
 ## 3. Product thesis evidence
 
-The core inversion — *implementation code is the build artifact; system intent is
-the source of truth* — holds end to end (unchanged from the internal V1 baseline,
+The core inversion — *the Arch-owned generated service substrate is the build
+artifact; system intent is the source of truth* — holds end to end (unchanged from the internal V1 baseline,
 re-verified this cycle):
 
 1. `backend.arch` is the durable source of truth; the CLI compiles it through the

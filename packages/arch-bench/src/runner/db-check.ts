@@ -76,6 +76,13 @@ export interface RunDbCheckOptions {
   /** Generated project workspace the migration was applied to. */
   readonly projectDir: string;
   readonly env: Record<string, string | undefined>;
+  /**
+   * Explicit DB URL override. The hermetic workspace env intentionally does not
+   * inherit the bench process's DB vars, so the orchestrator threads the URL
+   * (read from `process.env` in `main.ts`) through here. Falls back to the
+   * workspace env for direct callers/tests.
+   */
+  readonly databaseUrl?: string;
   readonly timeoutMs?: number;
 }
 
@@ -85,7 +92,7 @@ export interface RunDbCheckOptions {
  * database.
  */
 export async function runDbCheck(opts: RunDbCheckOptions): Promise<DbCheckResult> {
-  const url = resolveDatabaseUrl(opts.env);
+  const url = opts.databaseUrl ?? resolveDatabaseUrl(opts.env);
   if (!url) {
     return { status: "skipped", reason: "no DATABASE_URL/ARCH_BENCH_DATABASE_URL configured" };
   }

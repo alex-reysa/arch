@@ -1,0 +1,27 @@
+{
+  "$schema": "arch.bench.guarantee-assertion.v1",
+  "task": "social-feed-08",
+  "workflow": "CreatePost",
+  "kind": "latency",
+  "threshold": "<= 300ms",
+  "intent": "Add a feed-fanout p95 latency guarantee (<= 300ms) to the CreatePost workflow.",
+  "declaredGuarantees": [
+    "guarantee no_unsanitized_html_persisted",
+    "guarantee notification_failure_does_not_rollback_post",
+    "guarantee post_creation_p95_latency <= 250",
+    "guarantee feed_fanout_p95_latency <= 300"
+  ],
+  "verifierBacked": {
+    "asserts": [
+      "The guarantee is declared in the canonical IR produced from the evolved spec.",
+      "Arch deterministically regenerates the CreatePost workflow under ownership boundaries and emits a guarantee test scaffold traceable to the IR.",
+      "arch check reports no hash / missing-file / static-guarantee drift for the regenerated artifacts."
+    ],
+    "verifiedBy": "arch parse --emit-ir -> canonical arch.ir.v1 -> generate -> arch check"
+  },
+  "doesNotVerify": [
+    "Real p95 latency under representative production load.",
+    "Behavioral verification of the latency bound requires a load/benchmark oracle, deferred to Phase 2+ (roadmap: \"Latency guarantees\")."
+  ],
+  "guaranteeVerification": "declared_but_not_behaviorally_verified"
+}

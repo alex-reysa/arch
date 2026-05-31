@@ -3,14 +3,14 @@
 **Spec-to-code synchronization for TypeScript backend workflow services.**
 
 Arch makes `backend.arch` the durable source of truth for a backend service.
-Implementation code is a build artifact: generated, inspectable, and traceable
-back to the intent that produced it. When you change the spec, Arch computes a
+The Arch-owned generated service substrate is a build artifact: generated,
+inspectable, and traceable back to the intent that produced it. When you change the spec, Arch computes a
 typed diff, maps it to the affected artifacts under explicit ownership
 boundaries, patches only those files through a validated plan, and gates every
 metadata promotion behind verification.
 
-> **Core thesis:** system intent is the source of truth; implementation code is
-> an inspectable build artifact. Arch never *guesses* code edits — it derives
+> **Core thesis:** system intent is the source of truth; the Arch-owned
+> generated service substrate is an inspectable build artifact. Arch never *guesses* code edits — it derives
 > them from a canonical IR and proves them with verification and drift checks.
 
 ## The loop

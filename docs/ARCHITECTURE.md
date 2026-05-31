@@ -6,8 +6,8 @@ bottom). This file is a pointer into them, not a replacement.
 
 ## Core thesis
 
-**System intent is the source of truth; implementation code is an inspectable
-build artifact.** A developer authors one `backend.arch` spec. Arch compiles it
+**System intent is the source of truth; the Arch-owned generated service
+substrate is an inspectable build artifact.** A developer authors one `backend.arch` spec. Arch compiles it
 into a canonical typed IR, computes a *typed* diff when the spec changes, maps
 that diff to the affected generated files under explicit ownership boundaries,
 patches only those files through a validated plan, and gates every metadata
