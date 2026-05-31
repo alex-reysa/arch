@@ -54,17 +54,31 @@ export function renderWorkflow(workflow: WorkflowIR, ctx: { ir: CanonicalIR }): 
 
   const stepLines: string[] = [];
   let persisted = false;
+  // The validate preamble materializes `validation`/`payload` from the whole
+  // input. Multiple `validate` steps all re-validate the same input, so emit
+  // the preamble once; later validate steps are no-ops. This keeps named-step
+  // insertion (e.g. a second `step ...: validate ...`) from redeclaring locals.
+  let validateEmitted = false;
+  // Uniquify insert locals so multiple `insert` steps don't redeclare
+  // `inserted`. The first insert keeps the legacy `inserted` name (no churn).
+  let insertSeq = 0;
+  let lastInsertedVar = "inserted";
   for (const step of workflow.steps) {
     const op = step.operation;
     if (op.kind === "validate") {
-      stepLines.push(
-        "  // step: validate",
-        `  const validation = validate${cls}Input(input);`,
-        "  if (!validation.ok) {",
-        "    return { ok: false, statusCode: 400, errors: validation.errors };",
-        "  }",
-        `  const payload: ${cls}Input = { ...validation.value };`,
-      );
+      if (validateEmitted) {
+        stepLines.push(`  // step: validate ${op.target} (input already validated above)`);
+      } else {
+        validateEmitted = true;
+        stepLines.push(
+          "  // step: validate",
+          `  const validation = validate${cls}Input(input);`,
+          "  if (!validation.ok) {",
+          "    return { ok: false, statusCode: 400, errors: validation.errors };",
+          "  }",
+          `  const payload: ${cls}Input = { ...validation.value };`,
+        );
+      }
     } else if (op.kind === "sanitize") {
       const policy = op.policy_id ? ctx.ir.policies.find((p) => p.id === op.policy_id) : null;
       const policyName = policy ? camel(policy.name) : "passthrough";
@@ -77,15 +91,19 @@ export function renderWorkflow(workflow: WorkflowIR, ctx: { ir: CanonicalIR }): 
     } else if (op.kind === "insert") {
       const m = ctx.ir.models.find((x) => x.id === op.model_id);
       const cn = pascal(m?.name ?? "Unknown");
-      const validationName = `${camel(cn)}InsertValidation`;
+      const suffix = insertSeq === 0 ? "" : String(insertSeq + 1);
+      const validationName = `${camel(cn)}InsertValidation${suffix}`;
+      const insertedVar = `inserted${suffix}`;
       stepLines.push(
         "  // step: insert",
         `  const ${validationName} = validate${cn}(payload);`,
         `  if (!${validationName}.ok) {`,
         `    return { ok: false, statusCode: 400, errors: ${validationName}.errors };`,
         "  }",
-        `  const inserted = await create${cn}(${validationName}.value as Parameters<typeof create${cn}>[0]);`,
+        `  const ${insertedVar} = await create${cn}(${validationName}.value as Parameters<typeof create${cn}>[0]);`,
       );
+      lastInsertedVar = insertedVar;
+      insertSeq += 1;
       persisted = true;
     } else if (op.kind === "call") {
       const i = ctx.ir.integrations.find((x) => x.id === op.integration_id);
@@ -96,7 +114,7 @@ export function renderWorkflow(workflow: WorkflowIR, ctx: { ir: CanonicalIR }): 
         stepLines.push(
           "  // step: call (post-persistence; failure does NOT rollback)",
           "  try {",
-          `    await ${iname}.${opName}(inserted);`,
+          `    await ${iname}.${opName}(${lastInsertedVar});`,
           "  } catch {",
           "    // swallowed by design — guarantee notification_failure_does_not_rollback_post",
           "  }",
@@ -117,7 +135,7 @@ export function renderWorkflow(workflow: WorkflowIR, ctx: { ir: CanonicalIR }): 
   }
 
   const returnLine = persisted
-    ? "  return { ok: true, statusCode: 201, value: inserted };"
+    ? `  return { ok: true, statusCode: 201, value: ${lastInsertedVar} };`
     : "  return { ok: true, statusCode: 200, value: payload };";
   const inputInterface = renderInputInterface(cls, uniqueValidateTargets);
   const inputValidator = renderInputValidator(cls, uniqueValidateTargets);

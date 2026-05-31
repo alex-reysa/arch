@@ -34,6 +34,7 @@ export const SEM_CODES = {
   RESERVED_FIELD_MODIFIER: "ARCH-SEM-019",
   UNSUPPORTED_TARGET_STACK: "ARCH-SEM-020",
   UNSUPPORTED_TARGET_CACHE: "ARCH-SEM-021",
+  DUPLICATE_STEP_NAME: "ARCH-SEM-022",
 } as const;
 
 /**
@@ -254,6 +255,15 @@ function validateSteps(draft: DraftIR, diagnostics: DiagnosticBag): void {
           `unsupported workflow step: ${note.text}`,
           note.span,
           "V1 supports validate, sanitize, insert, update, delete, call, emit, and custom_call steps",
+        ),
+      );
+    } else if (note.kind === "duplicate_name") {
+      diagnostics.add(
+        err(
+          SEM_CODES.DUPLICATE_STEP_NAME,
+          `duplicate workflow step name: ${note.text}`,
+          note.span,
+          "each named step within a workflow must have a unique name so its identity is stable across edits",
         ),
       );
     }

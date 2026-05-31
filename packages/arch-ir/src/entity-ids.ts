@@ -19,6 +19,14 @@ export function workflowStepId(workflowName: string, index: number, op: string):
   return `step:${workflowName}.${index}.${op}`;
 }
 
+/**
+ * Stable entity id for a named workflow step (`step <name>: <kind> ...`).
+ * Independent of the step's position, so insertion/reorder does not change it.
+ */
+export function namedWorkflowStepId(workflowName: string, name: string): string {
+  return `step:${workflowName}.${name}`;
+}
+
 export function integrationId(name: string): string {
   return `integration:${name}`;
 }

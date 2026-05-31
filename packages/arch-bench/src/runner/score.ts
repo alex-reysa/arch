@@ -6,7 +6,7 @@
  */
 
 import type { BaselineId, ExpectedOutcome, TaskKind } from "../manifest/schema.js";
-import type { DriftRecall } from "../report/results.js";
+import type { DriftRecall, MigrationCheckStatus } from "../report/results.js";
 
 export interface TaskSignals {
   readonly blocked: boolean;
@@ -17,6 +17,13 @@ export interface TaskSignals {
   readonly offScopeFilesTouched: number;
   readonly driftRecall: DriftRecall;
   readonly repairSucceeded?: boolean;
+  /** Migration data-preservation check outcome (migration tasks only). */
+  readonly migrationCheckStatus?: MigrationCheckStatus;
+}
+
+/** Scoring options. `strict` is set in validation/paper runs. */
+export interface ScoreOptions {
+  readonly strict?: boolean;
 }
 
 function noCollateralHarm(s: TaskSignals): boolean {
@@ -28,11 +35,18 @@ export function scorePassed(
   expectedOutcome: ExpectedOutcome,
   baseline: BaselineId,
   s: TaskSignals,
+  opts: ScoreOptions = {},
 ): boolean {
-  void kind;
   switch (expectedOutcome) {
-    case "apply_passes":
-      return !s.blocked && s.verificationPassed && s.oraclePassed && noCollateralHarm(s);
+    case "apply_passes": {
+      const applied = !s.blocked && s.verificationPassed && s.oraclePassed && noCollateralHarm(s);
+      // In validation/paper mode, a migration-preservation claim is only valid
+      // if a real Postgres dbCheck actually ran and preserved the data.
+      if (opts.strict && kind === "migration_data_preservation") {
+        return applied && s.migrationCheckStatus === "passed";
+      }
+      return applied;
+    }
 
     case "apply_blocks":
       // The change is destructive/unsafe: a correct baseline refuses it and

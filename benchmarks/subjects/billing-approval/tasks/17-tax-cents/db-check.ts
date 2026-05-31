@@ -1,16 +1,17 @@
 #!/usr/bin/env tsx
 /**
- * Postgres data-preservation check for the `taxCents` migration. This stub is
- * Postgres-gated: it is not run in the smoke suite. In a full run it would, after
- * the migration, assert that pre-existing Invoice rows are preserved and that the
- * new `taxCents` column is backfilled with its 0 integer default.
+ * Migration data-preservation check (real Postgres).
  *
- * Usage: tsx db-check.ts <projectDir>
+ * Verifies the generated migration for this task is additive and preserves
+ * existing rows. See benchmarks/_lib/db-check-lib.ts for the contract. Reports
+ * `skipped` without DATABASE_URL/ARCH_BENCH_DATABASE_URL so smoke runs never
+ * require a database.
  */
-const dir = process.argv[2];
-if (!dir) {
-  process.stderr.write("usage: db-check.ts <projectDir>\n");
-  process.exit(2);
-}
-process.stdout.write(`db-check (taxCents): skipped outside Postgres gate for ${dir}\n`);
-process.exit(0);
+import { runMigrationDataCheck } from "../../../../_lib/db-check-lib.js";
+
+runMigrationDataCheck().catch((err) => {
+  process.stdout.write(
+    `ARCH_DBCHECK_RESULT ${JSON.stringify({ status: "failed", reason: `db-check crashed: ${String(err)}` })}\n`,
+  );
+  process.exitCode = 1;
+});

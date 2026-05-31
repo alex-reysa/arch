@@ -11,6 +11,21 @@ export type DriftRecall = "not_applicable" | "detected" | "missed";
 export type LlmProvider = "claude-code" | "grok-build" | "cursor-composer";
 export type BillingMode = "metered" | "subscription" | "unknown";
 
+/** Outcome of a Postgres data-preservation `dbCheck` for a migration task. */
+export type MigrationCheckStatus = "passed" | "failed" | "skipped" | "not_applicable";
+
+/**
+ * Whether a guarantee-bearing task is backed by a real behavioral oracle, or
+ * merely declared. Latency/guarantee tasks without a measurable load oracle are
+ * `declared_but_not_behaviorally_verified` and excluded from correctness claims.
+ */
+export type GuaranteeVerification = "behavioral" | "declared_but_not_behaviorally_verified";
+
+/** How a task was executed within its subject chain. */
+export type TaskMode = "sequential" | "isolated";
+/** What the runner does to the workspace after a failed task in sequential mode. */
+export type FailurePolicy = "restore-from-spec" | "continue-contaminated";
+
 export interface LlmMetadata {
   readonly provider: LlmProvider;
   readonly model?: string;
@@ -39,6 +54,18 @@ export interface BenchResult {
   readonly repairSucceeded?: boolean;
   readonly planDeterministic?: boolean;
   readonly migrationDataPreserved?: boolean;
+  /** Postgres data-preservation check outcome for migration tasks. */
+  readonly migrationCheckStatus?: MigrationCheckStatus;
+  /** Human-readable reason for the migration check status (skip cause, failure). */
+  readonly migrationCheckReason?: string;
+  /** Whether a guarantee-bearing task is behaviorally verified or only declared. */
+  readonly guaranteeVerification?: GuaranteeVerification;
+  /** Task kind, denormalized onto the row so reports can group without the manifest. */
+  readonly taskKind?: string;
+  /** Run mode this record was produced under. */
+  readonly taskMode?: TaskMode;
+  /** Failure policy in effect for this record. */
+  readonly failurePolicy?: FailurePolicy;
   readonly llm?: LlmMetadata;
   /** Free-form notes / failure reason for the human-readable report. */
   readonly note?: string;

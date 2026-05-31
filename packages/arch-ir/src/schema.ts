@@ -189,6 +189,13 @@ export interface WorkflowStepIR extends EntityIR {
   readonly workflow_id: string;
   /** Source-order index. Workflow step order is semantic and is preserved. */
   readonly order: number;
+  /**
+   * Stable, source-authored step name from `step <name>: <kind> ...`. When
+   * present, the step's entity id is `step:<Workflow>.<step_name>` and is
+   * stable across insertion/reorder. Absent for legacy positional steps,
+   * whose id (`step:<Workflow>.<index>.<AstKind>`) is unstable under edits.
+   */
+  readonly step_name?: string;
   readonly operation: WorkflowStepOperationIR;
 }
 

@@ -1,14 +1,17 @@
 #!/usr/bin/env tsx
 /**
- * Postgres data-preservation check for the additive `viewCount` migration.
+ * Migration data-preservation check (real Postgres).
  *
- * This is a stub: it documents the invariant that pre-existing Post rows keep
- * their data and receive the `viewCount` default (0) after the column is added.
- * The real assertion is Postgres-gated and is NOT run in the smoke suite, so
- * exiting 0 is sufficient here.
- *
- * Usage: tsx db-check.ts <projectDir>
+ * Verifies the generated migration for this task is additive and preserves
+ * existing rows. See benchmarks/_lib/db-check-lib.ts for the contract. Reports
+ * `skipped` without DATABASE_URL/ARCH_BENCH_DATABASE_URL so smoke runs never
+ * require a database.
  */
-const dir = process.argv[2];
-process.stdout.write(`db-check: viewCount additive migration preserves rows in ${dir ?? "(no dir)"}\n`);
-process.exit(0);
+import { runMigrationDataCheck } from "../../../../_lib/db-check-lib.js";
+
+runMigrationDataCheck().catch((err) => {
+  process.stdout.write(
+    `ARCH_DBCHECK_RESULT ${JSON.stringify({ status: "failed", reason: `db-check crashed: ${String(err)}` })}\n`,
+  );
+  process.exitCode = 1;
+});

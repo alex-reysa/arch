@@ -96,7 +96,7 @@ export interface TriggerNote {
 export interface StepNote {
   readonly workflowId: string;
   readonly stepId: string;
-  readonly kind: "unknown";
+  readonly kind: "unknown" | "duplicate_name";
   readonly span: SourceSpan;
   readonly text: string;
 }
@@ -437,9 +437,25 @@ export function buildDraftIR(ast: ArchFileAst): BuildDraftResult {
     const trigger = buildTrigger(decl.trigger, wfId, triggerNotes);
 
     const steps: WorkflowStepIR[] = [];
+    const seenStepNames = new Set<string>();
     for (const stepAst of decl.steps) {
       const built = buildStep(decl.name, wfId, stepAst, recordSource);
-      if (built.step) steps.push(built.step);
+      if (built.step) {
+        const stepName = built.step.step_name;
+        if (stepName !== undefined) {
+          if (seenStepNames.has(stepName)) {
+            stepNotes.push({
+              workflowId: wfId,
+              stepId: built.step.id,
+              kind: "duplicate_name",
+              span: stepAst.span,
+              text: stepName,
+            });
+          }
+          seenStepNames.add(stepName);
+        }
+        steps.push(built.step);
+      }
       if (built.unresolved) unresolved.push(...built.unresolved);
       if (built.note) stepNotes.push(built.note);
     }
@@ -927,13 +943,16 @@ function buildStep(
   ast: WorkflowStepAst,
   recordSource: (entityId: string, span: SourceSpan) => string,
 ): BuildStepResult {
-  const stepEntityId = Ids.workflowStepId(workflowName, ast.index, ast.kind);
+  const stepEntityId =
+    ast.name !== undefined
+      ? Ids.namedWorkflowStepId(workflowName, ast.name)
+      : Ids.workflowStepId(workflowName, ast.index, ast.kind);
   const sourceId = recordSource(stepEntityId, ast.span);
   switch (ast.kind) {
     case "ValidateStep": {
       const a = ast as ValidateStepAst;
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, {
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, {
           kind: "validate",
           target: a.target,
         }),
@@ -946,13 +965,13 @@ function buildStep(
           ? { kind: "sanitize", target: a.target, policy_id: Ids.policyId(a.policy) }
           : { kind: "sanitize", target: a.target };
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, op),
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, op),
       };
     }
     case "InsertStep": {
       const a = ast as InsertStepAst;
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, {
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, {
           kind: "insert",
           model_id: Ids.modelId(a.modelName),
         }),
@@ -961,7 +980,7 @@ function buildStep(
     case "UpdateStep": {
       const a = ast as UpdateStepAst;
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, {
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, {
           kind: "update",
           model_id: Ids.modelId(a.modelName),
         }),
@@ -970,7 +989,7 @@ function buildStep(
     case "DeleteStep": {
       const a = ast as DeleteStepAst;
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, {
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, {
           kind: "delete",
           model_id: Ids.modelId(a.modelName),
         }),
@@ -979,7 +998,7 @@ function buildStep(
     case "CallStep": {
       const a = ast as CallStepAst;
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, {
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, {
           kind: "call",
           integration_id: Ids.integrationId(a.integrationName),
           operation: a.operation,
@@ -989,7 +1008,7 @@ function buildStep(
     case "EmitStep": {
       const a = ast as EmitStepAst;
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, {
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, {
           kind: "emit",
           event: a.eventName,
         }),
@@ -998,7 +1017,7 @@ function buildStep(
     case "CustomStepCall": {
       const a = ast as CustomStepCallAst;
       return {
-        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, {
+        step: stepIR(stepEntityId, workflowId, ast.index, sourceId, ast.kind, ast.name, {
           kind: "custom_call",
           custom_id: Ids.customId(a.customName),
         }),
@@ -1024,6 +1043,7 @@ function stepIR(
   order: number,
   sourceId: string,
   astKind: string,
+  stepName: string | undefined,
   operation: WorkflowStepOperationIR,
 ): WorkflowStepIR {
   return {
@@ -1032,6 +1052,7 @@ function stepIR(
     name: `${id}.${astKind}`,
     workflow_id: workflowId,
     order,
+    ...(stepName !== undefined ? { step_name: stepName } : {}),
     operation,
     source_location_id: sourceId,
   };

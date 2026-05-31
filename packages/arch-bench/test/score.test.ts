@@ -59,3 +59,64 @@ describe("scorePassed — drift_detected", () => {
     expect(scorePassed("drift_injection", "drift_detected", "full-regeneration", signals({ verificationPassed: true, humanOwnedViolations: 1 }))).toBe(false);
   });
 });
+
+describe("scorePassed — migration_data_preservation (validation/paper mode)", () => {
+  it("passes when the db check actually ran and preserved data", () => {
+    expect(
+      scorePassed(
+        "migration_data_preservation",
+        "apply_passes",
+        "arch-typed-sync",
+        signals({ migrationCheckStatus: "passed" }),
+        { strict: true },
+      ),
+    ).toBe(true);
+  });
+
+  it("fails in strict mode when the db check was skipped", () => {
+    expect(
+      scorePassed(
+        "migration_data_preservation",
+        "apply_passes",
+        "arch-typed-sync",
+        signals({ migrationCheckStatus: "skipped" }),
+        { strict: true },
+      ),
+    ).toBe(false);
+  });
+
+  it("fails in strict mode when the db check failed (data not preserved)", () => {
+    expect(
+      scorePassed(
+        "migration_data_preservation",
+        "apply_passes",
+        "full-regeneration",
+        signals({ migrationCheckStatus: "failed" }),
+        { strict: true },
+      ),
+    ).toBe(false);
+  });
+
+  it("does NOT enforce the db check in non-strict (smoke) mode", () => {
+    expect(
+      scorePassed(
+        "migration_data_preservation",
+        "apply_passes",
+        "arch-typed-sync",
+        signals({ migrationCheckStatus: "skipped" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("only gates migration tasks, not other apply_passes kinds", () => {
+    expect(
+      scorePassed(
+        "additive_field",
+        "apply_passes",
+        "arch-typed-sync",
+        signals({ migrationCheckStatus: "skipped" }),
+        { strict: true },
+      ),
+    ).toBe(true);
+  });
+});

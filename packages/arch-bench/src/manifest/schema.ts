@@ -101,6 +101,19 @@ export interface BenchTask {
   /** Optional Postgres data-preservation check script (relative to manifest dir). */
   readonly dbCheck?: string;
   /**
+   * For `guarantee_change` tasks: a verifier-backed guarantee assertion file
+   * (relative to the manifest dir) that satisfies strict validation in lieu of
+   * a behavioral oracle test.
+   */
+  readonly guaranteeAssertion?: string;
+  /**
+   * For guarantee-bearing tasks: whether the guarantee is backed by a real
+   * behavioral oracle or only declared. Latency/guarantee tasks without a
+   * measurable load oracle are `declared_but_not_behaviorally_verified` and are
+   * excluded from correctness claims in reports.
+   */
+  readonly guaranteeVerification?: "behavioral" | "declared_but_not_behaviorally_verified";
+  /**
    * For `human_owned_edit` tasks: a custom file (under `src/custom/**`) to seed
    * before the task and assert is preserved afterwards. `path` is relative to
    * the generated project root.

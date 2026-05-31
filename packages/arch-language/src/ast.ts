@@ -238,6 +238,11 @@ export type WorkflowStepAst =
 export interface BaseStepAst extends AstNode {
   /** Source-order index. Workflow step order is semantic and preserved. */
   readonly index: number;
+  /**
+   * Optional stable step name from the `step <name>: <kind> ...` syntax.
+   * Absent for legacy positional steps (`step <kind> ...`).
+   */
+  readonly name?: string;
 }
 
 export interface ValidateStepAst extends BaseStepAst {

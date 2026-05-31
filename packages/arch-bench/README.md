@@ -42,8 +42,12 @@ guarantee behavior, human-owned preservation) — not generated structure.
 `expectedFilesTouched`, `offScopeFilesTouched`, `humanOwnedViolations`,
 `generatedTestDeletedOrWeakened`, `verificationPassed`, `oraclePassed`,
 `driftRecall`, `repairSucceeded`, `planDeterministic`, `migrationDataPreserved`,
-and `llm` (provider / model / billing mode / `costUsd` / `sessionId`). See
-[`src/report/results.ts`](src/report/results.ts).
+`migrationCheckStatus`, `migrationCheckReason`, `guaranteeVerification`,
+`taskKind`, `taskMode`, `failurePolicy`, and `llm` (provider / model /
+billing mode / `costUsd` / `sessionId`). See
+[`src/report/results.ts`](src/report/results.ts). The CSV and `summary.md`
+break results down by these dimensions, including a migration-dbCheck-status
+table and a guarantee-verification table.
 
 `off-scope` is content-diff based: rewriting a file with identical bytes is not
 churn. Arch's deterministic generation therefore shows ~0 off-scope; an LLM's
@@ -64,6 +68,14 @@ pnpm bench:summarize artifacts/bench/<run-id>/results.json
 # Merge sharded paper runs:
 pnpm bench:merge -- --inputs "artifacts/bench/paper-*/results.json" \
   --out artifacts/bench/paper-combined
+
+# Validate the committed manifest (structural, then strict):
+tsx packages/arch-bench/src/main.ts validate
+tsx packages/arch-bench/src/main.ts validate --strict
+
+# Validation run (isolated mode, restore-from-spec, strict migration scoring):
+ARCH_BENCH_DB=1 ARCH_BENCH_DATABASE_URL=postgres://arch:arch@localhost:5432/arch_bench \
+  pnpm bench:paper -- --task-mode isolated --failure-policy restore-from-spec --strict
 ```
 
 Or the CLI directly:
@@ -151,6 +163,66 @@ next task's `fromSpec` is the last *successfully applied* spec).
 
 Re-merge per-subject task sets and re-validate with
 [`scripts/merge-bench-tasks.ts`](../../scripts/merge-bench-tasks.ts).
+
+## Run modes
+
+| flag | values | meaning |
+| --- | --- | --- |
+| `--task-mode` | `sequential` (default) / `isolated` | `sequential` evolves one workspace through the ordered task chain; `isolated` bootstraps each task in a fresh workspace from its own `fromSpec`, so a task never replays a previous baseline's failure. |
+| `--failure-policy` | `continue-contaminated` (default) / `restore-from-spec` | in `sequential` mode, `restore-from-spec` rebuilds the next task's starting point from a clean workspace after a failed task, so one bad baseline doesn't cascade. |
+| `--strict` | flag | validation/paper scoring: migration tasks require a passing `dbCheck` (also implied by `--suite paper`). |
+
+Validation runs should include `--task-mode isolated` (no sequential
+contamination) and `--task-mode sequential --failure-policy restore-from-spec`
+(long-lived evolution without cascading failures).
+
+## Migration checks (`dbCheck`)
+
+Each `migration_data_preservation` task carries a `dbCheck` script run as
+`tsx db-check.ts <projectDir>` with `DATABASE_URL` / `ARCH_BENCH_DATABASE_URL`
+in the environment. The shared checker (`benchmarks/_lib/db-check-lib.ts`)
+applies the generated migrations to a real (throwaway) Postgres schema and
+verifies the change is **additive and preservation-safe** — an
+`ALTER TABLE ... ADD COLUMN` that is nullable or defaulted, with no destructive
+drop/recreate. It emits a structured result the runner records as
+`migrationCheckStatus` (`passed` / `failed` / `skipped` / `not_applicable`),
+`migrationDataPreserved`, and `migrationCheckReason`.
+
+Without a database configured the check reports `skipped`, so smoke runs never
+require Postgres. In `--strict` (validation/paper) mode, a migration task only
+passes if its `dbCheck` actually ran and reported `passed` — no
+migration-preservation claim is made without an executed `dbCheck`. Real checks
+need `pg` (a repo devDependency) and a Postgres URL.
+
+## Strict validation
+
+`arch-bench validate --strict` requires every `apply_passes` task to have an
+oracle (`oracleTests`, or a `dbCheck` for migration tasks) and every
+`guarantee_change` task to have a behavioral oracle or a verifier-backed
+`guaranteeAssertion`. Structural validation always runs; `--strict` adds the
+oracle requirements. Today the 10 latency `guarantee_change` tasks have no
+behavioral oracle yet, so `--strict` reports them (the honest "unproven" state).
+
+## Guarantee verification
+
+Latency/guarantee tasks with no measurable load oracle are marked
+`declared_but_not_behaviorally_verified` and **excluded from correctness
+claims**; the summary reports them separately. A guarantee only counts as
+`behavioral` when backed by a real oracle/assertion.
+
+## Validation-gate status (Phase 1)
+
+Per [docs/ARCH_VALIDATION_GATE_SPEC_AND_ROADMAP.md](../../docs/ARCH_VALIDATION_GATE_SPEC_AND_ROADMAP.md),
+this is the measurement foundation, not external proof:
+
+| Claim | Evidence wired | Status |
+| --- | --- | --- |
+| Workflow edits are stable | named-step IR/diff identity + insertion/reorder tests | Wired (internal) |
+| Migration preservation | real `dbCheck` execution + strict scoring gate | Wired; needs a Postgres paper run for evidence |
+| Guarantee oracles | strict validation + `declared_but_not_behaviorally_verified` reporting | 10 latency guarantees still unproven (no load oracle) |
+| External usefulness | — | Unproven (Phase 2: external specs) |
+
+The internal 100-task benchmark is regression coverage, not external proof.
 
 ## Design notes
 

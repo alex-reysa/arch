@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateManifest } from "../src/manifest/validate.js";
+import { validateManifest, validateManifestStrict } from "../src/manifest/validate.js";
 import { isLiveBaseline, type BenchManifest, type BenchTask } from "../src/manifest/schema.js";
 
 function task(over: Partial<BenchTask> = {}): BenchTask {
@@ -122,5 +122,61 @@ describe("validateManifest", () => {
     const result = validateManifest(manifest({ tasks: [task({ expectedOutcome: "explode" as never })] }));
     expect(result.ok).toBe(false);
     expect(result.errors.join("\n")).toMatch(/expectedOutcome/);
+  });
+});
+
+describe("validateManifestStrict", () => {
+  it("accepts an apply_passes task that has an oracle", () => {
+    expect(validateManifestStrict(manifest({ tasks: [task({ oracleTests: ["subjects/x/o.test.ts"] })] })).ok).toBe(true);
+  });
+
+  it("rejects an apply_passes task with neither oracle nor dbCheck", () => {
+    const res = validateManifestStrict(manifest({ tasks: [task({ oracleTests: [] })] }));
+    expect(res.ok).toBe(false);
+    expect(res.errors.join("\n")).toMatch(/no oracle/i);
+  });
+
+  it("accepts a migration task whose only oracle is its dbCheck", () => {
+    const m = manifest({
+      tasks: [
+        task({
+          kind: "migration_data_preservation",
+          oracleTests: [],
+          dbCheck: "subjects/social-feed/tasks/12-x/db-check.ts",
+        }),
+      ],
+    });
+    expect(validateManifestStrict(m).ok).toBe(true);
+  });
+
+  it("rejects a guarantee_change task with no behavioral oracle or assertion", () => {
+    const res = validateManifestStrict(manifest({ tasks: [task({ kind: "guarantee_change", oracleTests: [] })] }));
+    expect(res.ok).toBe(false);
+    expect(res.errors.join("\n")).toMatch(/guarantee/i);
+  });
+
+  it("accepts a guarantee_change task backed by a behavioral oracle", () => {
+    const m = manifest({
+      tasks: [task({ kind: "guarantee_change", oracleTests: ["subjects/x/oracles/latency.test.ts"] })],
+    });
+    expect(validateManifestStrict(m).ok).toBe(true);
+  });
+
+  it("accepts a guarantee_change task backed by a verifier assertion", () => {
+    const m = manifest({
+      tasks: [task({ kind: "guarantee_change", oracleTests: [], guaranteeAssertion: "subjects/x/assertions/latency.ts" })],
+    });
+    expect(validateManifestStrict(m).ok).toBe(true);
+  });
+
+  it("does not require oracles for apply_blocks or drift_detected tasks", () => {
+    const m = manifest({
+      tasks: [task({ kind: "destructive_block", expectedOutcome: "apply_blocks", oracleTests: [] })],
+    });
+    expect(validateManifestStrict(m).ok).toBe(true);
+  });
+
+  it("still surfaces base structural errors", () => {
+    expect(validateManifestStrict(manifest({ baselines: ["nope" as never] })).ok).toBe(false);
   });
 });

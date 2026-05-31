@@ -146,3 +146,60 @@ describe("toSummaryMarkdown", () => {
     expect(md).toContain("subscription");
   });
 });
+
+describe("report dimensions: migration + guarantee + run mode", () => {
+  it("CSV includes the migration / guarantee / run-mode columns", () => {
+    const run = buildRunResults(META, [
+      result({
+        taskId: "social-feed-12",
+        taskKind: "migration_data_preservation",
+        migrationCheckStatus: "passed",
+        migrationDataPreserved: true,
+        taskMode: "isolated",
+        failurePolicy: "restore-from-spec",
+      }),
+    ]);
+    const csv = toCsv(run);
+    const header = csv.split("\n")[0]!;
+    const row1 = csv.split("\n")[1]!;
+    for (const col of [
+      "migrationCheckStatus",
+      "guaranteeVerification",
+      "taskKind",
+      "taskMode",
+      "failurePolicy",
+    ]) {
+      expect(header).toContain(col);
+    }
+    expect(row1).toContain("passed");
+    expect(row1).toContain("isolated");
+    expect(row1).toContain("restore-from-spec");
+  });
+
+  it("summary reports migration dbCheck status", () => {
+    const run = buildRunResults(META, [
+      result({
+        taskId: "social-feed-12",
+        taskKind: "migration_data_preservation",
+        migrationCheckStatus: "skipped",
+      }),
+    ]);
+    const md = toSummaryMarkdown(run, TASK_INDEX);
+    expect(md).toContain("Migration dbCheck status");
+    expect(md).toContain("skipped");
+  });
+
+  it("summary reports guarantee verification and flags declared-but-not-verified", () => {
+    const run = buildRunResults(META, [
+      result({
+        taskId: "social-feed-08",
+        taskKind: "guarantee_change",
+        guaranteeVerification: "declared_but_not_behaviorally_verified",
+        passed: true,
+      }),
+    ]);
+    const md = toSummaryMarkdown(run, TASK_INDEX);
+    expect(md).toContain("Guarantee verification");
+    expect(md).toContain("declared_but_not_behaviorally_verified");
+  });
+});

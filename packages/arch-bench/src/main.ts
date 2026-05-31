@@ -14,6 +14,9 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { BASELINE_IDS, isLiveBaseline, type BaselineId } from "./manifest/schema.js";
 import { buildTaskIndex, loadManifest } from "./manifest/load.js";
+import { validateManifest, validateManifestStrict } from "./manifest/validate.js";
+import { parseFailurePolicy, parseTaskMode } from "./runner/run-modes.js";
+import type { FailurePolicy, TaskMode } from "./report/results.js";
 import { runSuite } from "./runner/orchestrator.js";
 import { buildRunResults, type RunResults } from "./report/results.js";
 import { writeRunArtifacts } from "./report/write.js";
@@ -31,6 +34,7 @@ async function main(argv: string[]): Promise<number> {
     return 0;
   }
   if (command === "run") return runCommand(rest);
+  if (command === "validate") return validateCommand(rest);
   if (command === "summarize") return summarizeCommand(rest);
   if (command === "merge") return mergeCommand(rest);
   process.stderr.write(`arch-bench: unknown command '${command}'\n`);
@@ -45,6 +49,7 @@ function printHelp(): void {
       "",
       "Usage:",
       "  arch-bench run --suite <paper|smoke> [options]",
+      "  arch-bench validate [--strict] [--manifest <path>]",
       "  arch-bench summarize --input <results.json> [--manifest <path>]",
       "  arch-bench merge --inputs <results.json[,results.json]|glob> --out <dir> [--manifest <path>]",
       "",
@@ -56,7 +61,14 @@ function printHelp(): void {
       "  --subjects x,y            Restrict to subjects",
       "  --max-tasks <n>           Cap tasks per subject",
       "  --repeats <n>             Live-baseline repeats (default 3, env ARCH_BENCH_REPEATS)",
+      "  --task-mode <sequential|isolated>          Run mode (default sequential)",
+      "  --failure-policy <restore-from-spec|continue-contaminated>  (default continue-contaminated)",
+      "  --strict                  Validation/paper scoring: migration tasks need a passing dbCheck",
       "  --keep                    Keep temp workspaces",
+      "",
+      "validate options:",
+      "  --strict                  Require an oracle for every apply_passes task and a",
+      "                            behavioral oracle/assertion for every guarantee_change task",
       "",
       "Live LLM baselines require ARCH_BENCH_LIVE=1 and authenticated provider CLIs.",
       "Models: ARCH_BENCH_CLAUDE_MODEL=sonnet, ARCH_BENCH_GROK_MODEL=grok-build,",
@@ -75,6 +87,10 @@ interface RunArgs {
   maxTasks: number | undefined;
   repeats: number | undefined;
   keep: boolean;
+  taskMode: TaskMode | undefined;
+  failurePolicy: FailurePolicy | undefined;
+  strict: boolean;
+  parseErrors: string[];
 }
 
 function parseRunArgs(argv: readonly string[]): RunArgs {
@@ -87,6 +103,10 @@ function parseRunArgs(argv: readonly string[]): RunArgs {
     maxTasks: undefined,
     repeats: undefined,
     keep: false,
+    taskMode: undefined,
+    failurePolicy: undefined,
+    strict: false,
+    parseErrors: [],
   };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
@@ -97,6 +117,20 @@ function parseRunArgs(argv: readonly string[]): RunArgs {
     else if (a === "--subjects") args.subjects = (argv[++i] ?? "").split(",").filter(Boolean);
     else if (a === "--max-tasks") args.maxTasks = Number(argv[++i]);
     else if (a === "--repeats") args.repeats = Number(argv[++i]);
+    else if (a === "--task-mode") {
+      const v = argv[++i];
+      const mode = parseTaskMode(v);
+      if (mode) args.taskMode = mode;
+      else args.parseErrors.push(`invalid --task-mode: ${JSON.stringify(v)} (expected sequential|isolated)`);
+    } else if (a === "--failure-policy") {
+      const v = argv[++i];
+      const policy = parseFailurePolicy(v);
+      if (policy) args.failurePolicy = policy;
+      else
+        args.parseErrors.push(
+          `invalid --failure-policy: ${JSON.stringify(v)} (expected restore-from-spec|continue-contaminated)`,
+        );
+    } else if (a === "--strict") args.strict = true;
     else if (a === "--keep") args.keep = true;
   }
   return args;
@@ -104,6 +138,10 @@ function parseRunArgs(argv: readonly string[]): RunArgs {
 
 async function runCommand(argv: readonly string[]): Promise<number> {
   const args = parseRunArgs(argv);
+  if (args.parseErrors.length > 0) {
+    for (const e of args.parseErrors) process.stderr.write(`arch-bench: ${e}\n`);
+    return 64;
+  }
   const manifestPath = args.manifest ?? resolve(REPO_ROOT, "benchmarks", "manifest.json");
 
   let loaded;
@@ -149,6 +187,20 @@ async function runCommand(argv: readonly string[]): Promise<number> {
 
   const liveTransports = live && wantsLive ? buildLiveTransports(liveProviders, liveConfig) : undefined;
 
+  const validationMode = args.strict || args.suite === "paper";
+  process.stdout.write(
+    `  mode: task-mode=${args.taskMode ?? "sequential"} failure-policy=${args.failurePolicy ?? "continue-contaminated"} strict=${validationMode}\n`,
+  );
+  if (validationMode) {
+    const strict = validateManifestStrict(loaded.manifest);
+    if (!strict.ok) {
+      process.stdout.write(
+        `  WARNING: strict manifest validation found ${strict.errors.length} unproven task(s) ` +
+          `(run 'arch-bench validate --strict' for the list); they remain unverified, not silently passed\n`,
+      );
+    }
+  }
+
   const results = await runSuite({
     loaded,
     repoRoot: REPO_ROOT,
@@ -160,6 +212,9 @@ async function runCommand(argv: readonly string[]): Promise<number> {
     liveModels: liveConfig.models,
     artifactsDir: outDir,
     keepWorkspace: args.keep,
+    ...(args.taskMode ? { taskMode: args.taskMode } : {}),
+    ...(args.failurePolicy ? { failurePolicy: args.failurePolicy } : {}),
+    validationMode,
     log: (m) => process.stdout.write(m + "\n"),
   });
 
@@ -174,6 +229,34 @@ async function runCommand(argv: readonly string[]): Promise<number> {
   process.stdout.write(`\narch-bench: ${passed}/${results.length} records passed\n`);
   process.stdout.write(`  results: ${written.resultsJson}\n  csv:     ${written.resultsCsv}\n  summary: ${written.summaryMd}\n`);
   return 0;
+}
+
+async function validateCommand(argv: readonly string[]): Promise<number> {
+  let manifestPath: string | undefined;
+  let strict = false;
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--manifest") manifestPath = argv[++i];
+    else if (a === "--strict") strict = true;
+  }
+  const mPath = manifestPath ?? resolve(REPO_ROOT, "benchmarks", "manifest.json");
+  let loaded;
+  try {
+    loaded = await loadManifest(mPath);
+  } catch (err) {
+    process.stderr.write(`arch-bench validate: ${err instanceof Error ? err.message : String(err)}\n`);
+    return 65;
+  }
+  const result = strict ? validateManifestStrict(loaded.manifest) : validateManifest(loaded.manifest);
+  if (result.ok) {
+    process.stdout.write(
+      `arch-bench: manifest ${mPath} is valid (${strict ? "strict" : "structural"}; ${loaded.manifest.tasks.length} tasks)\n`,
+    );
+    return 0;
+  }
+  process.stderr.write(`arch-bench: manifest ${mPath} has ${result.errors.length} validation error(s):\n`);
+  for (const e of result.errors) process.stderr.write(`  - ${e}\n`);
+  return 1;
 }
 
 async function summarizeCommand(argv: readonly string[]): Promise<number> {

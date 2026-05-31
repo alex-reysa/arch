@@ -104,3 +104,40 @@ export function validateManifest(manifest: BenchManifest): ManifestValidation {
 
   return { ok: errors.length === 0, errors };
 }
+
+/**
+ * Strict validation for validation/paper runs. In addition to all structural
+ * checks, every behaviorally-claimed task must carry an independent oracle:
+ *
+ * - Every `apply_passes` task must have an oracle (`oracleTests`) or, for
+ *   migration tasks, a `dbCheck`.
+ * - Every `guarantee_change` task must have a behavioral oracle (`oracleTests`)
+ *   or a verifier-backed `guaranteeAssertion`. (A latency guarantee with no
+ *   measurable load oracle is unproven and must be wired before it can count.)
+ *
+ * Tasks expected to block or to surface drift do not require oracles.
+ */
+export function validateManifestStrict(manifest: BenchManifest): ManifestValidation {
+  const base = validateManifest(manifest);
+  const errors: string[] = [...base.errors];
+
+  for (const t of manifest.tasks ?? []) {
+    if (t.expectedOutcome !== "apply_passes") continue;
+    const where = t.id ? `task ${t.id}` : "task (missing id)";
+    if (t.kind === "guarantee_change") {
+      const behaviorallyBacked = t.oracleTests.length > 0 || t.guaranteeAssertion != null;
+      if (!behaviorallyBacked) {
+        errors.push(
+          `strict: guarantee_change ${where} has no behavioral oracle or verifier-backed guaranteeAssertion`,
+        );
+      }
+    } else {
+      const hasOracle = t.oracleTests.length > 0 || t.dbCheck != null;
+      if (!hasOracle) {
+        errors.push(`strict: apply_passes ${where} (${t.kind}) has no oracle (oracleTests or dbCheck)`);
+      }
+    }
+  }
+
+  return { ok: errors.length === 0, errors };
+}

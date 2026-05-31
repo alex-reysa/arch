@@ -28,7 +28,16 @@ import { collectChurn, diffSnapshots } from "../metrics/churn.js";
 import { runOracles } from "./oracles.js";
 import { applyDriftScripts, measureAndRepairArchDrift } from "./drift.js";
 import { scorePassed, type TaskSignals } from "./score.js";
-import type { BenchResult, DriftRecall } from "../report/results.js";
+import { runDbCheck } from "./db-check.js";
+import { DEFAULT_FAILURE_POLICY, DEFAULT_TASK_MODE, planTaskExecution } from "./run-modes.js";
+import type {
+  BenchResult,
+  DriftRecall,
+  FailurePolicy,
+  GuaranteeVerification,
+  MigrationCheckStatus,
+  TaskMode,
+} from "../report/results.js";
 import type { ClaudeTransport } from "../llm/claude-runner.js";
 import type { LiveAgentProvider, LiveAgentTransport } from "../llm/agent-runner.js";
 
@@ -46,6 +55,14 @@ export interface SuiteOptions {
   readonly log?: (msg: string) => void;
   readonly liveTransports?: Partial<Record<LiveAgentProvider, LiveAgentTransport>>;
   readonly liveModels?: Partial<Record<LiveAgentProvider, string>>;
+  /** Run mode: `isolated` bootstraps each task from its own fromSpec. */
+  readonly taskMode?: TaskMode;
+  /** What to do with the workspace after a failed task in sequential mode. */
+  readonly failurePolicy?: FailurePolicy;
+  /** Validation/paper mode: strict scoring (migration tasks need a passing dbCheck). */
+  readonly validationMode?: boolean;
+  /** Per-task db-check timeout (ms). */
+  readonly dbCheckTimeoutMs?: number;
 }
 
 export async function runSuite(opts: SuiteOptions): Promise<BenchResult[]> {
@@ -77,20 +94,66 @@ async function runSubjectBaseline(
   log: (msg: string) => void,
 ): Promise<BenchResult[]> {
   const tasks = capTasks(tasksForSubject(opts.loaded.manifest, subject.id), opts.maxTasksPerSubject);
-  const ws = await createWorkspace(`${subject.id}-${baselineId}-r${repeat}`);
-  const archCli = makeArchCli({ repoRoot: opts.repoRoot, env: ws.env });
+  const taskMode = opts.taskMode ?? DEFAULT_TASK_MODE;
+  const failurePolicy = opts.failurePolicy ?? DEFAULT_FAILURE_POLICY;
 
+  if (taskMode === "isolated") {
+    // Each task runs in its own fresh workspace bootstrapped from its fromSpec,
+    // so it never replays a previous task's baseline failure.
+    const out: BenchResult[] = [];
+    for (const task of tasks) {
+      const ws = await createWorkspace(`${subject.id}-${baselineId}-r${repeat}-t${task.order}`);
+      const archCli = makeArchCli({ repoRoot: opts.repoRoot, env: ws.env });
+      try {
+        const boot = await bootstrapSpec(opts.loaded, task.fromSpec, ws, archCli);
+        if (!boot.ok) {
+          log(`  ✗ bootstrap(fromSpec) failed: ${boot.reason}`);
+          out.push(failedResult(task, baselineId, repeat, `bootstrap failed: ${boot.reason}`, taskMode, failurePolicy));
+          continue;
+        }
+        out.push(await runOneTask(opts, subject, task, baselineId, repeat, ws, archCli, log, taskMode, failurePolicy));
+      } finally {
+        if (!opts.keepWorkspace) await destroyWorkspace(ws);
+        else log(`  kept workspace ${ws.dir}`);
+      }
+    }
+    return out;
+  }
+
+  // Sequential: evolve one shared workspace through the ordered task chain.
+  let ws = await createWorkspace(`${subject.id}-${baselineId}-r${repeat}`);
+  let archCli = makeArchCli({ repoRoot: opts.repoRoot, env: ws.env });
   try {
     const boot = await bootstrapV00(opts.loaded, subject, ws, archCli);
     if (!boot.ok) {
       log(`  ✗ bootstrap failed: ${boot.reason}`);
-      return tasks.map((t) => failedResult(t, baselineId, repeat, `bootstrap failed: ${boot.reason}`));
+      return tasks.map((t) =>
+        failedResult(t, baselineId, repeat, `bootstrap failed: ${boot.reason}`, taskMode, failurePolicy),
+      );
     }
 
     const out: BenchResult[] = [];
-    for (const task of tasks) {
-      const result = await runOneTask(opts, subject, task, baselineId, repeat, ws, archCli, log);
+    let priorTaskFailed = false;
+    for (let i = 0; i < tasks.length; i++) {
+      const task = tasks[i]!;
+      const plan = planTaskExecution({ taskMode, failurePolicy, index: i, priorTaskFailed });
+      if (plan.restoreFromSpec) {
+        // restore-from-spec: rebuild this task's starting point from a clean
+        // workspace so one failed baseline doesn't cascade into the next task.
+        if (!opts.keepWorkspace) await destroyWorkspace(ws);
+        ws = await createWorkspace(`${subject.id}-${baselineId}-r${repeat}-restore-t${task.order}`);
+        archCli = makeArchCli({ repoRoot: opts.repoRoot, env: ws.env });
+        const reboot = await bootstrapSpec(opts.loaded, task.fromSpec, ws, archCli);
+        if (!reboot.ok) {
+          log(`  ✗ restore(fromSpec) failed: ${reboot.reason}`);
+          out.push(failedResult(task, baselineId, repeat, `restore failed: ${reboot.reason}`, taskMode, failurePolicy));
+          priorTaskFailed = true;
+          continue;
+        }
+      }
+      const result = await runOneTask(opts, subject, task, baselineId, repeat, ws, archCli, log, taskMode, failurePolicy);
       out.push(result);
+      priorTaskFailed = !result.passed;
     }
     return out;
   } finally {
@@ -110,8 +173,18 @@ async function bootstrapV00(
   ws: Workspace,
   archCli: ArchCli,
 ): Promise<BootstrapResult> {
-  const v00 = await readSpecSource(loaded, subject.baseSpec);
-  await writeBackendSpec(ws, v00);
+  return bootstrapSpec(loaded, subject.baseSpec, ws, archCli);
+}
+
+/** Bootstrap a clean, verified project at an arbitrary spec (v00 or a task fromSpec). */
+async function bootstrapSpec(
+  loaded: LoadedManifest,
+  specRelPath: string,
+  ws: Workspace,
+  archCli: ArchCli,
+): Promise<BootstrapResult> {
+  const spec = await readSpecSource(loaded, specRelPath);
+  await writeBackendSpec(ws, spec);
   const backend = resolve(ws.dir, "backend.arch");
   const steps: [string, readonly string[]][] = [
     ["init", ["init", "--cwd", ws.dir]],
@@ -135,6 +208,8 @@ async function runOneTask(
   ws: Workspace,
   archCli: ArchCli,
   log: (msg: string) => void,
+  taskMode: TaskMode = DEFAULT_TASK_MODE,
+  failurePolicy: FailurePolicy = DEFAULT_FAILURE_POLICY,
 ): Promise<BenchResult> {
   const startedAt = Date.now();
   let logs = "";
@@ -188,6 +263,10 @@ async function runOneTask(
     const oracles = await runOracles({ ws, taskId: task.id, oracleFiles });
     logs += oracles.logs;
 
+    const migration = await runMigrationCheck(opts, task, ws);
+    logs += migration.reason ? `\n=== dbCheck: ${migration.status} (${migration.reason}) ===\n` : "";
+    const guaranteeVerification = computeGuaranteeVerification(task);
+
     const signals: TaskSignals = {
       blocked: evolve.blocked,
       verificationPassed: evolve.verificationPassed,
@@ -196,9 +275,12 @@ async function runOneTask(
       generatedTestDeletedOrWeakened: churn.generatedTestDeletedOrWeakened,
       offScopeFilesTouched: churn.offScopeFilesTouched,
       driftRecall,
+      migrationCheckStatus: migration.status,
       ...(repairSucceeded !== undefined ? { repairSucceeded } : {}),
     };
-    const passed = scorePassed(task.kind, task.expectedOutcome, baselineId, signals);
+    const passed = scorePassed(task.kind, task.expectedOutcome, baselineId, signals, {
+      strict: opts.validationMode ?? false,
+    });
 
     const result: BenchResult = {
       taskId: task.id,
@@ -218,6 +300,13 @@ async function runOneTask(
       driftRecall,
       ...(repairSucceeded !== undefined ? { repairSucceeded } : {}),
       ...(evolve.planDeterministic !== undefined ? { planDeterministic: evolve.planDeterministic } : {}),
+      ...(migration.status !== "not_applicable" ? { migrationCheckStatus: migration.status } : {}),
+      ...(migration.dataPreserved !== undefined ? { migrationDataPreserved: migration.dataPreserved } : {}),
+      ...(migration.reason !== undefined ? { migrationCheckReason: migration.reason } : {}),
+      ...(guaranteeVerification !== undefined ? { guaranteeVerification } : {}),
+      taskKind: task.kind,
+      taskMode,
+      failurePolicy,
       ...(evolve.llm ? { llm: evolve.llm } : {}),
       ...(evolve.note ? { note: evolve.note } : {}),
     };
@@ -267,7 +356,14 @@ function providerForBaseline(baseline: BaselineId): LiveAgentProvider | undefine
   return undefined;
 }
 
-function failedResult(task: BenchTask, baseline: BaselineId, repeat: number, note: string): BenchResult {
+function failedResult(
+  task: BenchTask,
+  baseline: BaselineId,
+  repeat: number,
+  note: string,
+  taskMode: TaskMode = DEFAULT_TASK_MODE,
+  failurePolicy: FailurePolicy = DEFAULT_FAILURE_POLICY,
+): BenchResult {
   return {
     taskId: task.id,
     baseline,
@@ -284,8 +380,43 @@ function failedResult(task: BenchTask, baseline: BaselineId, repeat: number, not
     verificationPassed: false,
     oraclePassed: false,
     driftRecall: "not_applicable",
+    taskKind: task.kind,
+    taskMode,
+    failurePolicy,
     note,
   };
+}
+
+/**
+ * Run the migration data-preservation dbCheck for a migration task. Returns
+ * `not_applicable` for non-migration tasks (and migration tasks with no dbCheck
+ * script). Without a database configured the check reports `skipped`.
+ */
+async function runMigrationCheck(
+  opts: SuiteOptions,
+  task: BenchTask,
+  ws: Workspace,
+): Promise<{ status: MigrationCheckStatus; dataPreserved?: boolean; reason?: string }> {
+  if (task.kind !== "migration_data_preservation") return { status: "not_applicable" };
+  if (!task.dbCheck) return { status: "not_applicable", reason: "task declares no dbCheck script" };
+  return runDbCheck({
+    scriptPath: resolvePath(opts.loaded, task.dbCheck),
+    projectDir: ws.dir,
+    env: ws.env,
+    ...(opts.dbCheckTimeoutMs !== undefined ? { timeoutMs: opts.dbCheckTimeoutMs } : {}),
+  });
+}
+
+/**
+ * Classify a guarantee_change task as behaviorally verified or merely declared.
+ * A guarantee with no behavioral oracle / verifier assertion is
+ * `declared_but_not_behaviorally_verified` and excluded from correctness claims.
+ */
+function computeGuaranteeVerification(task: BenchTask): GuaranteeVerification | undefined {
+  if (task.kind !== "guarantee_change") return undefined;
+  const behavioral = task.oracleTests.length > 0 || task.guaranteeAssertion != null;
+  if (behavioral) return "behavioral";
+  return task.guaranteeVerification ?? "declared_but_not_behaviorally_verified";
 }
 
 function capTasks(tasks: readonly BenchTask[], max?: number): BenchTask[] {

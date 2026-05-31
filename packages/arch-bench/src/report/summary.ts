@@ -152,6 +152,50 @@ function repeatGroupKey(taskId: string, baseline: BaselineId): string {
   return `${taskId}::${baseline}`;
 }
 
+function migrationCheckTable(results: readonly BenchResult[]): string {
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    if (r.migrationCheckStatus === undefined) continue;
+    counts.set(r.migrationCheckStatus, (counts.get(r.migrationCheckStatus) ?? 0) + 1);
+  }
+  const header = row(["dbCheck status", "Records"]);
+  const sep = row(["---", "---"]);
+  const rows =
+    counts.size === 0
+      ? [row(["(no migration tasks)", 0])]
+      : [...counts.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([s, n]) => row([s, n]));
+  return ["### Migration dbCheck status", "", header, sep, ...rows, ""].join("\n");
+}
+
+function guaranteeVerificationTable(results: readonly BenchResult[]): string {
+  const counts = new Map<string, { passed: number; total: number }>();
+  for (const r of results) {
+    if (r.guaranteeVerification === undefined) continue;
+    const cur = counts.get(r.guaranteeVerification) ?? { passed: 0, total: 0 };
+    cur.total += 1;
+    if (r.passed) cur.passed += 1;
+    counts.set(r.guaranteeVerification, cur);
+  }
+  const header = row(["Verification", "Passed", "Total", "Pass %"]);
+  const sep = row(["---", "---", "---", "---"]);
+  const rows =
+    counts.size === 0
+      ? [row(["(no guarantee tasks)", 0, 0, "—"])]
+      : [...counts.entries()]
+          .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+          .map(([v, { passed, total }]) => row([v, passed, total, pct(passed, total)]));
+  return [
+    "### Guarantee verification",
+    "",
+    "`declared_but_not_behaviorally_verified` guarantees are excluded from correctness claims.",
+    "",
+    header,
+    sep,
+    ...rows,
+    "",
+  ].join("\n");
+}
+
 export function toSummaryMarkdown(run: RunResults, index: TaskIndex): string {
   const subjectOf = (r: BenchResult) => index[r.taskId]?.subject ?? "(unknown)";
   const kindOf = (r: BenchResult) => index[r.taskId]?.kind ?? "(unknown)";
@@ -170,6 +214,8 @@ export function toSummaryMarkdown(run: RunResults, index: TaskIndex): string {
     byBaselineTable(run.results),
     groupedTable("By task kind", "Kind", run.results, TASK_KINDS, kindOf),
     groupedTable("By subject", "Subject", run.results, [], subjectOf),
+    migrationCheckTable(run.results),
+    guaranteeVerificationTable(run.results),
   ];
   const variance = liveVarianceTable(run.results, index);
   if (variance) parts.push(variance);

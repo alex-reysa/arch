@@ -1,13 +1,17 @@
 #!/usr/bin/env tsx
 /**
- * Postgres-gated data-preservation check for the additive `completedCount`
- * migration. In a full paper run this would: seed Task rows BEFORE the change,
- * apply the generated migration, then assert old rows survive with
- * completedCount defaulted to 0. It is gated on a live Postgres and is NOT run
- * during the smoke suite, so this stub simply exits 0.
+ * Migration data-preservation check (real Postgres).
  *
- * Usage: tsx db-check.ts <projectDir>
+ * Verifies the generated migration for this task is additive and preserves
+ * existing rows. See benchmarks/_lib/db-check-lib.ts for the contract. Reports
+ * `skipped` without DATABASE_URL/ARCH_BENCH_DATABASE_URL so smoke runs never
+ * require a database.
  */
-const dir = process.argv[2];
-process.stdout.write(`db-check (stub): completedCount migration preserves rows in ${dir ?? "<dir>"}\n`);
-process.exit(0);
+import { runMigrationDataCheck } from "../../../../_lib/db-check-lib.js";
+
+runMigrationDataCheck().catch((err) => {
+  process.stdout.write(
+    `ARCH_DBCHECK_RESULT ${JSON.stringify({ status: "failed", reason: `db-check crashed: ${String(err)}` })}\n`,
+  );
+  process.exitCode = 1;
+});

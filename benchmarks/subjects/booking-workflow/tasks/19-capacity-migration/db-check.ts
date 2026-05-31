@@ -1,17 +1,17 @@
 #!/usr/bin/env tsx
 /**
- * Postgres-gated data-preservation check for the additive `capacity` column on
- * Resource.
+ * Migration data-preservation check (real Postgres).
  *
- * In a real migration run this would: connect to the migrated database, read
- * Resource rows that existed BEFORE the column was added, and assert each
- * backfilled to the declared default (0) without losing any pre-existing data.
- * The benchmark smoke suite does not provision Postgres, so this stub is
- * intentionally a no-op that exits 0; it is only exercised by the Postgres-gated
- * integration.
- *
- * Usage: tsx db-check.ts <projectDir>
+ * Verifies the generated migration for this task is additive and preserves
+ * existing rows. See benchmarks/_lib/db-check-lib.ts for the contract. Reports
+ * `skipped` without DATABASE_URL/ARCH_BENCH_DATABASE_URL so smoke runs never
+ * require a database.
  */
-const dir = process.argv[2] ?? "";
-process.stdout.write(`db-check (capacity): skipped (no Postgres) for ${dir}\n`);
-process.exit(0);
+import { runMigrationDataCheck } from "../../../../_lib/db-check-lib.js";
+
+runMigrationDataCheck().catch((err) => {
+  process.stdout.write(
+    `ARCH_DBCHECK_RESULT ${JSON.stringify({ status: "failed", reason: `db-check crashed: ${String(err)}` })}\n`,
+  );
+  process.exitCode = 1;
+});

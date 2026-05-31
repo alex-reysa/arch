@@ -994,6 +994,29 @@ class Parser {
   private parseStep(index: number): WorkflowStepAst | null {
     const start = this.peek().span.start;
     this.advance(); // 'step'
+    // Optional named-step syntax: `step <name>: <kind> ...`. The name may be
+    // an identifier or a keyword (so a step can be named after its verb, e.g.
+    // `step validate: validate body`). Legacy `step <kind> ...` has no ':'.
+    let name: string | undefined;
+    const nameTok = this.peek();
+    const colonTok = this.peek(1);
+    if (
+      (nameTok.kind === "identifier" || nameTok.kind === "keyword") &&
+      colonTok.kind === "punctuation" &&
+      colonTok.text === ":"
+    ) {
+      name = nameTok.text;
+      this.advance(); // step name
+      this.advance(); // ':'
+    }
+    const step = this.parseStepBody(start, index);
+    return step && name !== undefined ? { ...step, name } : step;
+  }
+
+  private parseStepBody(
+    start: SourcePosition,
+    index: number,
+  ): WorkflowStepAst | null {
     const verbTok = this.peek();
     if (verbTok.kind !== "keyword") {
       this.addDiag(
