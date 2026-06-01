@@ -8,7 +8,8 @@ export interface ProjectRoot {
 }
 
 export function findProjectRoot(start: string = process.cwd()): ProjectRoot {
-  let cur = resolve(start);
+  const resolvedStart = resolve(start);
+  let cur = resolvedStart;
   while (true) {
     const archFile = resolve(cur, "backend.arch");
     if (existsSync(archFile)) {
@@ -20,7 +21,10 @@ export function findProjectRoot(start: string = process.cwd()): ProjectRoot {
     }
     const parent = dirname(cur);
     if (parent === cur) {
-      throw new Error("backend.arch not found in any ancestor directory");
+      throw new Error(
+        `backend.arch not found in ${resolvedStart} or any ancestor directory; ` +
+          `run from inside an Arch project or pass --cwd <project-dir>`,
+      );
     }
     cur = parent;
   }

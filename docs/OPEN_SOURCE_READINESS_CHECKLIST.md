@@ -4,6 +4,12 @@ This checklist operationalizes `docs/PUBLIC_V1_GOAL.md`. It is intentionally
 evidence-based: every checked item should map to a command, test, document, or
 explicit limitation.
 
+> **Status note.** The unchecked boxes below are the blank operational template,
+> not an assertion that the work is undone. The evidence-backed status (what was
+> actually met, with citations) lives in
+> [`PUBLIC_V1_READINESS_REPORT.md` §4](PUBLIC_V1_READINESS_REPORT.md). The boxes
+> are left blank here so there is a single source of truth for readiness status.
+
 ## Product Evidence
 
 - [ ] Clean clone quickstart works on a developer machine.

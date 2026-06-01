@@ -58,7 +58,12 @@ export class HttpLlmProvider implements AgentProvider {
     this.id = config.id ?? "http-llm";
     this.model = config.model;
     this.model_id = config.model;
-    this.enabled = Boolean(config.apiKey);
+    // `enabled` reflects whether `run()` can actually make a call: with an API
+    // key the default transport works, and an injected transport works
+    // regardless of the key. Without either, the default transport refuses — so
+    // `enabled` must be false. (Previously keyed only on apiKey, which wrongly
+    // reported disabled for a working injected-transport provider.)
+    this.enabled = Boolean(config.apiKey) || Boolean(config.transport);
     this.maxOutputTokens = config.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
     this.transport = config.transport ?? anthropicMessagesTransport(config);
   }
@@ -101,10 +106,23 @@ export function providerFromEnv(
     model: env.ARCH_LLM_MODEL ?? "claude-opus-4",
     ...(env.ARCH_LLM_BASE_URL !== undefined ? { baseUrl: env.ARCH_LLM_BASE_URL } : {}),
     ...(env.ARCH_LLM_MAX_OUTPUT_TOKENS !== undefined
-      ? { maxOutputTokens: Number(env.ARCH_LLM_MAX_OUTPUT_TOKENS) }
+      ? { maxOutputTokens: parseMaxOutputTokens(env.ARCH_LLM_MAX_OUTPUT_TOKENS) }
       : {}),
   };
   return new HttpLlmProvider(config);
+}
+
+/**
+ * Parse `ARCH_LLM_MAX_OUTPUT_TOKENS`. An explicitly-set-but-malformed value is
+ * operator misconfiguration, so throw (naming the value) rather than silently
+ * coercing to `NaN` and sending an invalid `max_tokens` to the model.
+ */
+function parseMaxOutputTokens(raw: string): number {
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`ARCH_LLM_MAX_OUTPUT_TOKENS must be a positive integer, got ${JSON.stringify(raw)}`);
+  }
+  return n;
 }
 
 function anthropicMessagesTransport(config: HttpLlmProviderConfig): LlmTransport {

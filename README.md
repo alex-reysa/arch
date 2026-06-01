@@ -156,6 +156,8 @@ packages/arch-sync       diff engine, dependency graph, planner, patcher, migrat
 packages/arch-verifier   verification runner, drift + static-guarantee detectors
 packages/arch-agents     constrained agent task protocol + deterministic provider
 packages/arch-cli        init / parse / plan / apply / check / repair
+packages/arch-test-fixtures  shared .arch fixtures used across package test suites
+packages/arch-bench       intent-to-code sync benchmark harness (see packages/arch-bench/README.md)
 examples/social-feed     v1 + v2-visibility demo specs
 scripts/run-e2e.ts       full CLI transcript (pnpm e2e)
 founding-docs/           canonical product + implementation specs

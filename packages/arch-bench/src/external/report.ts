@@ -164,7 +164,7 @@ export function toExternalSummaryMarkdown(metrics: ExternalMetrics, opts: Extern
   if (opts.datasetHash) parts.push(`- External dataset hash: \`${opts.datasetHash}\``);
   parts.push(
     `- Evolutions classified: ${metrics.total}`,
-    `- Pass-or-explicit-block rate: ${pct(metrics.passOrExplicitBlockRate)}`,
+    `- Pass-or-honest-refusal rate (incl. capability-gap blocks): ${pct(metrics.passOrExplicitBlockRate)}`,
     "",
   );
 

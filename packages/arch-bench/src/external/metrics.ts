@@ -60,7 +60,14 @@ export interface ExternalMetrics {
   readonly unsupportedRateByExternalAuthor: readonly RateBucket[];
   readonly unsupportedRateByDomain: readonly RateBucket[];
   readonly unsupportedReasonsTop10: readonly UnsupportedReasonCount[];
-  /** Fraction of evolutions that passed or blocked for a correct/explicit reason. */
+  /**
+   * Fraction of evolutions that passed OR were blocked for a correct/explicit
+   * reason — this INCLUDES `blocked_unsupported_capability` (a genuine Arch
+   * capability gap), so it is a "pass-or-honest-refusal" rate, NOT a
+   * "handled correctly" / "Arch supports this" rate. On an un-annotated real
+   * dataset every block classifies as `blocked_supported_reason`, which inflates
+   * this number; read it alongside the unsupported-rate metrics.
+   */
   readonly passOrExplicitBlockRate: number;
 }
 

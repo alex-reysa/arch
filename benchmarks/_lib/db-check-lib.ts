@@ -49,6 +49,27 @@ function databaseUrl(): string | undefined {
   return process.env["ARCH_BENCH_DATABASE_URL"] ?? process.env["DATABASE_URL"] ?? undefined;
 }
 
+/**
+ * Last line of defense before the destructive `DROP SCHEMA public CASCADE`
+ * below: only reset databases whose name marks them as a throwaway (contains a
+ * `bench`/`test` token), unless ARCH_BENCH_DB_ALLOW_ANY=1 explicitly overrides.
+ * Mirrors `isThrowawayDatabaseUrl` in packages/arch-bench/src/runner/db-check.ts
+ * (kept as a tiny duplicate because this file runs standalone via tsx, with no
+ * dependency on the bench package).
+ */
+const THROWAWAY_DB_NAME = /(^|[_-])(bench|test)([_-]|$)/i;
+
+function isThrowawayDatabaseUrl(url: string): boolean {
+  if (process.env["ARCH_BENCH_DB_ALLOW_ANY"] === "1") return true;
+  let name: string;
+  try {
+    name = new URL(url).pathname.replace(/^\//, "");
+  } catch {
+    return false;
+  }
+  return name !== "" && THROWAWAY_DB_NAME.test(name);
+}
+
 interface MigrationFile {
   readonly name: string;
   readonly sql: string;
@@ -116,6 +137,15 @@ export async function runMigrationDataCheck(): Promise<void> {
   const url = databaseUrl();
   if (!url) {
     emit({ status: "skipped", reason: "no DATABASE_URL / ARCH_BENCH_DATABASE_URL configured" });
+    return;
+  }
+  if (!isThrowawayDatabaseUrl(url)) {
+    emit({
+      status: "failed",
+      reason:
+        "refusing to reset a non-throwaway database: this check runs DROP SCHEMA public CASCADE. " +
+        "Use a database whose name contains a 'bench'/'test' token, or set ARCH_BENCH_DB_ALLOW_ANY=1 to override.",
+    });
     return;
   }
 

@@ -51,13 +51,22 @@ export async function runRepair(argv: string[]): Promise<number> {
   const root = args.cwd ?? findProjectRootSafe();
   if (!root) {
     process.stderr.write("arch repair: no backend.arch found in cwd or ancestors\n");
-    return 64;
+    // Exit 2 = generic precondition error, matching `arch plan`/`arch check`
+    // and the spec's exit-code table (a missing project is not a usage error).
+    return 2;
   }
 
   const archFile = resolve(root, "backend.arch");
   const metadataDir = args.metadataDir ?? resolve(root, ".arch");
   const outDir = args.outDir ? (isAbsolute(args.outDir) ? args.outDir : resolve(root, args.outDir)) : root;
   const maxAttempts = args.maxAttempts ?? MAX_ATTEMPTS;
+  // `--max-attempts` with a missing or non-numeric value parses to NaN; without
+  // this guard the bounded loop (`1 <= NaN`) runs zero attempts and reports
+  // "unresolved after NaN attempt(s)". Reject it as a usage error instead.
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
+    process.stderr.write("arch repair: --max-attempts must be a positive integer\n");
+    return 64;
+  }
   const paths = metadataPaths(metadataDir);
 
   // Compile the current spec — the IR is the source of truth for regeneration.

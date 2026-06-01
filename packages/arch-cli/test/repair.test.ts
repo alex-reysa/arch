@@ -30,6 +30,7 @@ vi.mock("@arch/verifier", async (importOriginal) => {
 
 import { runApply } from "../src/commands/apply.js";
 import { runRepair } from "../src/commands/repair.js";
+import { findProjectRoot } from "../src/project-root.js";
 
 const SPEC = [
   "target ts.node.fastify.postgres.prisma cache: redis",
@@ -163,6 +164,22 @@ describe("arch repair (M14 bounded loop)", () => {
     expect(out.value).toBe(0);
     expect(out.stdout).toMatch(/no repairable/);
     expect(verifierMocks.verify).not.toHaveBeenCalled();
+  });
+});
+
+describe("arch repair argument + precondition handling", () => {
+  it("rejects a non-positive-integer --max-attempts as a usage error (64)", async () => {
+    const dir = await mkdtemp(resolve(tmpdir(), "arch-repair-badarg-"));
+    for (const bad of ["abc", "0", "-1", ""]) {
+      const code = await capture(() => runRepair(["--cwd", dir, "--max-attempts", bad]));
+      expect(code, `--max-attempts ${JSON.stringify(bad)}`).toBe(64);
+    }
+  });
+
+  it("findProjectRoot throws an actionable error (start dir + --cwd hint) when no backend.arch exists", async () => {
+    const empty = await mkdtemp(resolve(tmpdir(), "arch-noroot-"));
+    expect(() => findProjectRoot(empty)).toThrow(empty);
+    expect(() => findProjectRoot(empty)).toThrow(/--cwd/);
   });
 });
 

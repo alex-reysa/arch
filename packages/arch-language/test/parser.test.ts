@@ -373,4 +373,36 @@ describe("parser: diagnostics carry stable codes and source coordinates", () => 
     expect(d).toBeDefined();
     expect(d?.message).toContain("@");
   });
+
+  function workflowWithTrigger(triggerLine: string): string {
+    return [
+      "target ts.node.fastify.postgres.prisma cache: redis",
+      "",
+      "model Post {",
+      "  id: id",
+      "  body: string",
+      "}",
+      "",
+      "workflow CreatePost {",
+      `  ${triggerLine}`,
+      "  step validate body",
+      "  step insert Post",
+      "}",
+      "",
+    ].join("\n");
+  }
+
+  it("emits language.parse.missing_api_path for a trigger with no/empty path, anchored at the method", () => {
+    for (const trigger of ["trigger api POST auth: none", "trigger api POST() auth: none"]) {
+      const { diagnostics } = parse(workflowWithTrigger(trigger), "m.arch");
+      const d = diagnostics.all().find((x) => x.code === PARSER_DIAGNOSTIC_CODES.missingApiPath);
+      expect(d, trigger).toBeDefined();
+      expect(d?.span?.start.line, trigger).toBe(9); // the POST method token line
+    }
+  });
+
+  it("does not emit missing_api_path when a leading-slash path is present", () => {
+    const { diagnostics } = parse(workflowWithTrigger("trigger api POST /posts auth: none"), "ok.arch");
+    expect(diagnostics.all().find((x) => x.code === PARSER_DIAGNOSTIC_CODES.missingApiPath)).toBeUndefined();
+  });
 });

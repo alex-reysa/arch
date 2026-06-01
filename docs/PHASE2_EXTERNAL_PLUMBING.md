@@ -109,7 +109,10 @@ to hide:
 - `unsupported_rate_by_external_author`
 - `unsupported_rate_by_domain`
 - `unsupported_reasons_top_10`
-- `passOrExplicitBlockRate` (pass + correct/explicit block — the go/no-go shape)
+- `passOrExplicitBlockRate` (pass + correct/explicit block, **including
+  capability-gap blocks** — a "pass-or-honest-refusal" rate, not a "handled
+  correctly" rate; on un-annotated real data it is optimistically biased and
+  must be read alongside the unsupported-rate metrics)
 
 "Unsupported" means `blocked_unsupported_capability` — a genuine Arch capability
 gap, distinct from a correct refusal of a destructive change.

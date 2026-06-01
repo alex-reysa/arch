@@ -42,3 +42,6 @@ pnpm-debug.log*
 
 # Local scratch (not part of the project)
 expert-consultation.txt
+
+# Local-only Claude Code / agent config (never committed)
+.claude/

@@ -166,6 +166,6 @@ Summary tables aggregate by baseline, task kind, subject, and live-repeat varian
 ## Assumptions
 
 - Benchmark artifacts can be committed under `benchmarks/`; large run outputs stay ignored under `artifacts/bench/`.
-- CI runs only unit tests and `bench:smoke`; full `bench:paper` is manual because it is live, slow, and billable.
+- CI runs build, typecheck, unit tests, the deterministic e2e transcript, and goldens-determinism; the benchmark (`bench:smoke` and `bench:paper`) is run locally/manually and is not yet wired into CI. `bench:paper` in particular is live, slow, and billable.
 - Claude Sonnet, Grok Build, and Composer 2.5 are the standard LLM backends for the first multi-model paper-scale run.
 - Existing V1 language limits remain: no optional/nullable fields, no unsupported trigger surfaces, no production migration claims beyond tested additive/data-preserving cases.

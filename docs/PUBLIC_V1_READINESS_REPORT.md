@@ -1,5 +1,11 @@
 # Arch Public V1 Readiness Report
 
+> _Point-in-time snapshot (2026-05-30, branch `arch-v1-readiness`, base `6109f83`)._
+> _Per-run figures below — the 228-test count, the "8 packages" total, and the
+> commit/branch — describe the repo at that moment and have since drifted (a 9th
+> package, `@arch/bench`, was added later). The durable claim is the product
+> thesis in §3, not these counts; re-run the commands in §13 for current numbers._
+
 **Date:** 2026-05-30
 **Branch:** `arch-v1-readiness`
 **Base commit:** `6109f83` (the Public V1 work in this report builds on top of it;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalIR } from "@arch/ir";
 import type { DiffV1 } from "../src/diff/diff-schema.js";
-import { renderMigrationSqlForDiff } from "../src/patcher/migration-writer.js";
+import { renderMigrationSqlForDiff, renderInitialMigrationSql } from "../src/patcher/migration-writer.js";
 
 function postIR(): CanonicalIR {
   return {
@@ -113,5 +113,72 @@ describe("renderMigrationSqlForDiff", () => {
       required_without_default: false,
     };
     expect(renderMigrationSqlForDiff(diff, postIR())).toBe(renderMigrationSqlForDiff(diff, postIR()));
+  });
+});
+
+function enumIR(): CanonicalIR {
+  return {
+    schema_version: "arch.ir.v1",
+    canonical_hash: "h",
+    target: { stack: "ts.node.fastify.postgres.prisma", cache: "redis" },
+    models: [
+      {
+        id: "model:Post",
+        kind: "model",
+        name: "Post",
+        fields: [
+          { id: "field:Post.id", kind: "field", name: "id", model_id: "model:Post", type: { kind: "id" }, nullable: false, indexed: false },
+          {
+            id: "field:Post.visibility",
+            kind: "field",
+            name: "visibility",
+            model_id: "model:Post",
+            type: { kind: "enum", values: ["public", "private"] },
+            nullable: false,
+            default: "public",
+            indexed: false,
+          },
+        ],
+        indexes: [],
+      },
+    ],
+    integrations: [],
+    policies: [],
+    workflows: [],
+    customs: [],
+    artifacts: [],
+    ownership: [],
+    verification: { typecheck: true, tests: true, migrations: true },
+    guarantee_coverage: [],
+    source_locations: [],
+  } as unknown as CanonicalIR;
+}
+
+describe("renderMigrationSqlForDiff (model_added with an enum field)", () => {
+  it("emits CREATE TYPE for the enum before the CREATE TABLE that references it", () => {
+    const diff = {
+      ...common("diff.model_added.Post"),
+      risk: "additive",
+      type: "model_added",
+      model_id: "model:Post",
+    } as unknown as DiffV1;
+    const sql = renderMigrationSqlForDiff(diff, enumIR());
+    expect(sql).not.toBeNull();
+    expect(sql!).toContain(`CREATE TYPE "PostVisibility" AS ENUM ('public', 'private');`);
+    const createType = sql!.indexOf('CREATE TYPE "PostVisibility"');
+    const createTable = sql!.indexOf('CREATE TABLE "Post"');
+    expect(createType).toBeGreaterThanOrEqual(0);
+    expect(createTable).toBeGreaterThan(createType);
+  });
+});
+
+describe("renderInitialMigrationSql", () => {
+  it("orders enum CREATE TYPE blocks before the tables that reference them", () => {
+    const sql = renderInitialMigrationSql(enumIR());
+    expect(sql).toContain(`CREATE TYPE "PostVisibility" AS ENUM ('public', 'private');`);
+    const createType = sql.indexOf('CREATE TYPE "PostVisibility"');
+    const createTable = sql.indexOf('CREATE TABLE "Post"');
+    expect(createType).toBeGreaterThanOrEqual(0);
+    expect(createTable).toBeGreaterThan(createType);
   });
 });

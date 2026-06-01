@@ -59,7 +59,9 @@ export async function runApply(argv: string[], opts: RunApplyOptions = {}): Prom
   const root = args.cwd ?? findProjectRootSafe();
   if (!root) {
     process.stderr.write("arch apply: no backend.arch found in cwd or ancestors\n");
-    return 64;
+    // Exit 2 = generic precondition error, matching `arch plan`/`arch check`
+    // and the spec's exit-code table (a missing project is not a usage error).
+    return 2;
   }
 
   const archFile = resolve(root, "backend.arch");

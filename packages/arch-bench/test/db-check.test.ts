@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { parseDbCheckResult, resolveDatabaseUrl, runDbCheck } from "../src/runner/db-check.js";
+import {
+  isThrowawayDatabaseUrl,
+  parseDbCheckResult,
+  resolveDatabaseUrl,
+  runDbCheck,
+} from "../src/runner/db-check.js";
 
 describe("parseDbCheckResult", () => {
   it("parses a passed result with preservation", () => {
@@ -61,23 +66,52 @@ describe("resolveDatabaseUrl", () => {
   });
 });
 
-describe("runDbCheck URL resolution", () => {
+describe("isThrowawayDatabaseUrl", () => {
+  it("accepts databases whose name carries a bench/test token", () => {
+    for (const url of [
+      "postgres://arch:arch@localhost:55432/arch_bench",
+      "postgres://localhost/bench",
+      "postgres://localhost/app_test",
+      "postgres://localhost/test_db",
+      "postgres://u:p@h:5432/arch_bench?schema=public",
+    ]) {
+      expect(isThrowawayDatabaseUrl(url, {}), url).toBe(true);
+    }
+  });
+
+  it("rejects non-throwaway, empty, and unparseable database names", () => {
+    for (const url of [
+      "postgres://localhost/prod",
+      "postgres://localhost/app",
+      "postgres://localhost/main",
+      "postgres://localhost/postgres",
+      "postgres://localhost/", // empty name
+      "not a url",
+    ]) {
+      expect(isThrowawayDatabaseUrl(url, {}), url).toBe(false);
+    }
+  });
+
+  it("accepts any database when ARCH_BENCH_DB_ALLOW_ANY=1 is set", () => {
+    expect(isThrowawayDatabaseUrl("postgres://localhost/prod", { ARCH_BENCH_DB_ALLOW_ANY: "1" })).toBe(true);
+  });
+});
+
+describe("runDbCheck URL resolution and guard", () => {
   it("short-circuits to skipped (no spawn) when neither env nor override has a URL", async () => {
     const res = await runDbCheck({ scriptPath: "/nonexistent/db-check.ts", projectDir: "/tmp", env: {} });
     expect(res.status).toBe("skipped");
     expect(res.reason).toMatch(/no DATABASE_URL/i);
   });
 
-  it("does not short-circuit when an explicit databaseUrl override is provided", async () => {
-    // With a URL present it proceeds to spawn; the bogus script path then makes
-    // it fail (not skip), proving the override defeats the no-URL skip path.
+  it("refuses a non-throwaway database before spawning (fails, not skipped)", async () => {
     const res = await runDbCheck({
       scriptPath: "/nonexistent/db-check.ts",
       projectDir: "/tmp",
       env: {},
-      databaseUrl: "postgres://example/db",
-      timeoutMs: 20000,
+      databaseUrl: "postgres://example/prod_db",
     });
-    expect(res.status).not.toBe("skipped");
+    expect(res.status).toBe("failed");
+    expect(res.reason).toMatch(/throwaway/i);
   });
 });

@@ -376,4 +376,12 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, "'\\''")}'`;
 }
 
-main().then((code) => process.exit(code));
+main()
+  .then((code) => process.exit(code))
+  .catch((err: unknown) => {
+    // A throw before main()'s try block (e.g. a missing fixture) would otherwise
+    // become an unhandled rejection; surface it and exit with the intended code.
+    const exitCode = err instanceof E2EError ? err.exitCode : 1;
+    process.stderr.write(`e2e: FAILED — ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(exitCode);
+  });

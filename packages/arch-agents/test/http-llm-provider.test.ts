@@ -144,6 +144,19 @@ describe("HttpLlmProvider", () => {
     const provider = new HttpLlmProvider({ model: "m", apiKey: "sk-test-key" });
     expect(provider.enabled).toBe(true);
   });
+
+  it("reports enabled=true when an injected transport makes run() functional without an API key", async () => {
+    const transport: LlmTransport = async () =>
+      JSON.stringify({
+        patches: [{ kind: "rewrite_whole_file", path: "src/models/Post.ts", content: "// model:Post\n" }],
+        satisfied_criteria: [],
+        notes: "done",
+      });
+    const provider = new HttpLlmProvider({ model: "m", transport });
+    expect(provider.enabled).toBe(true);
+    // ...and run() actually works (does not throw the "disabled" error).
+    await expect(provider.run(spec())).resolves.toBeDefined();
+  });
 });
 
 describe("providerFromEnv", () => {
@@ -157,5 +170,14 @@ describe("providerFromEnv", () => {
     expect(p.id).toBe("http-llm");
     expect(p.model_id).toBe("claude-test");
     expect(p.enabled).toBe(true);
+  });
+
+  it("throws on a malformed ARCH_LLM_MAX_OUTPUT_TOKENS instead of sending NaN max_tokens", () => {
+    for (const bad of ["fast", "", "0", "-5", "12.5"]) {
+      expect(
+        () => providerFromEnv({ ARCH_LLM_API_KEY: "sk-x", ARCH_LLM_MAX_OUTPUT_TOKENS: bad }),
+        bad,
+      ).toThrow(/positive integer/);
+    }
   });
 });

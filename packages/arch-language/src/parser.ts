@@ -58,6 +58,7 @@ export const PARSER_DIAGNOSTIC_CODES = {
   duplicateSystem: "language.parse.duplicate_system",
   duplicateTrigger: "language.parse.duplicate_trigger",
   invalidValue: "language.parse.invalid_value",
+  missingApiPath: "language.parse.missing_api_path",
 } as const;
 
 const RESERVED_CUSTOM_KINDS: ReadonlySet<string> = new Set(["test_generator"]);
@@ -885,6 +886,16 @@ class Parser {
       this.expectPunct(")", PARSER_DIAGNOSTIC_CODES.expectedRParen);
     } else {
       path = this.readApiPath();
+    }
+    // A trigger with no usable path (missing, non-`/`, or an empty `("")`) used
+    // to be silently accepted as an empty route; surface it as a diagnostic
+    // anchored at the HTTP method rather than emitting an empty path.
+    if (path === "") {
+      this.addDiag(
+        PARSER_DIAGNOSTIC_CODES.missingApiPath,
+        "Expected an API path (for example /posts) after the HTTP method",
+        methodTok.span,
+      );
     }
     let auth: ApiTriggerAst["auth"] = "none";
     if (this.check("keyword", "auth")) {

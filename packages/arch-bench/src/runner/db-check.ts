@@ -34,6 +34,33 @@ export function resolveDatabaseUrl(env: Record<string, string | undefined>): str
   return env["ARCH_BENCH_DATABASE_URL"] ?? env["DATABASE_URL"] ?? undefined;
 }
 
+/**
+ * A db-check RESETS the target database's `public` schema
+ * (`DROP SCHEMA IF EXISTS public CASCADE`). To make a mis-set `DATABASE_URL`
+ * non-destructive by default, only databases whose name marks them as a
+ * throwaway are allowed: the database name must contain a `bench` or `test`
+ * token (so `arch_bench`, `bench`, `app_test`, `test_db` pass; `prod`, `app`,
+ * `main`, `postgres` do not). An unparseable URL or empty database name is
+ * treated as unsafe. `ARCH_BENCH_DB_ALLOW_ANY=1` is an explicit override.
+ */
+const THROWAWAY_DB_NAME = /(^|[_-])(bench|test)([_-]|$)/i;
+
+export function databaseName(url: string): string | undefined {
+  try {
+    const name = new URL(url).pathname.replace(/^\//, "");
+    return name === "" ? undefined : name;
+  } catch {
+    return undefined;
+  }
+}
+
+export function isThrowawayDatabaseUrl(url: string, env: Record<string, string | undefined>): boolean {
+  if (env["ARCH_BENCH_DB_ALLOW_ANY"] === "1") return true;
+  const name = databaseName(url);
+  if (name === undefined) return false;
+  return THROWAWAY_DB_NAME.test(name);
+}
+
 /** Parse a db-check subprocess's stdout/exit code into a structured result. */
 export function parseDbCheckResult(stdout: string, exitCode: number): DbCheckResult {
   let payload: string | undefined;
@@ -96,7 +123,21 @@ export async function runDbCheck(opts: RunDbCheckOptions): Promise<DbCheckResult
   if (!url) {
     return { status: "skipped", reason: "no DATABASE_URL/ARCH_BENCH_DATABASE_URL configured" };
   }
-  const env: NodeJS.ProcessEnv = { ...opts.env, DATABASE_URL: url, ARCH_BENCH_DATABASE_URL: url };
+  // Default-deny: db-check runs `DROP SCHEMA public CASCADE`. Refuse (loudly, not
+  // silently skip) a non-throwaway database BEFORE spawning the script. The
+  // override var can be set in either the bench process or the workspace env.
+  const allowAny = opts.env["ARCH_BENCH_DB_ALLOW_ANY"] ?? process.env["ARCH_BENCH_DB_ALLOW_ANY"];
+  const guardEnv = { ...opts.env, ...(allowAny !== undefined ? { ARCH_BENCH_DB_ALLOW_ANY: allowAny } : {}) };
+  if (!isThrowawayDatabaseUrl(url, guardEnv)) {
+    const name = databaseName(url) ?? "<unparseable URL>";
+    return {
+      status: "failed",
+      reason:
+        `refusing to reset non-throwaway database "${name}": db-check runs DROP SCHEMA public CASCADE. ` +
+        `Use a database whose name contains a 'bench'/'test' token, or set ARCH_BENCH_DB_ALLOW_ANY=1 to override.`,
+    };
+  }
+  const env: NodeJS.ProcessEnv = { ...guardEnv, DATABASE_URL: url, ARCH_BENCH_DATABASE_URL: url };
   const res = await runCommand("pnpm", ["exec", "tsx", opts.scriptPath, opts.projectDir], {
     cwd: opts.projectDir,
     env,

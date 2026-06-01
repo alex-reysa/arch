@@ -16,13 +16,18 @@ function stringify(value: unknown): string {
   if (typeof value === "boolean") return value ? "true" : "false";
   if (typeof value === "string") return JSON.stringify(value);
   if (Array.isArray(value)) {
-    return `[${value.map(stringify).join(",")}]`;
+    // JSON parity: an `undefined` array element serializes as `null`.
+    return `[${value.map((v) => (v === undefined ? "null" : stringify(v))).join(",")}]`;
   }
   if (typeof value === "object") {
-    const keys = Object.keys(value as Record<string, unknown>).sort();
-    const body = keys
-      .map((k) => `${JSON.stringify(k)}:${stringify((value as Record<string, unknown>)[k])}`)
-      .join(",");
+    const obj = value as Record<string, unknown>;
+    // JSON parity: omit keys whose value is `undefined` (rather than throwing).
+    // This keeps output byte-identical for objects without undefined keys, so
+    // no previously-hashable IR's canonical hash changes.
+    const keys = Object.keys(obj)
+      .filter((k) => obj[k] !== undefined)
+      .sort();
+    const body = keys.map((k) => `${JSON.stringify(k)}:${stringify(obj[k])}`).join(",");
     return `{${body}}`;
   }
   throw new Error(`unsupported value in canonical JSON: ${typeof value}`);

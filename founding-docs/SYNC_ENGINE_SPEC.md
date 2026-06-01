@@ -3221,13 +3221,21 @@ Expected sync-engine behavior:
 - promote metadata on success
 ```
 
-Exit behavior:
+Exit behavior (as implemented by `packages/arch-cli/src/commands/apply.ts`):
 
 ```text
-0: apply, verification, and metadata promotion succeeded
-1: apply or verification failed; no metadata promotion
-2: unsafe/stale/corrupt input; no writes or partial write stopped with report
+0:  apply, verification, and metadata promotion succeeded
+2:  no project root (no backend.arch in cwd or ancestors)
+65: the spec failed to parse/validate (diagnostics printed)
+70: a precondition was refused (corrupt snapshot, stale/blocked/destructive
+    plan, or a rejected agent patch) OR a write/install/verify step failed —
+    in every case NO metadata is promoted
 ```
+
+> Note: the V1 CLI collapses every "no promotion" outcome into a single failure
+> code (70) rather than distinguishing a blocked precondition from a runtime
+> verification failure. Callers should treat any non-zero exit as "not promoted"
+> and read stderr for the specific reason. Splitting 70 is a documented follow-up.
 
 ### 24.3 `arch check`
 
@@ -3255,6 +3263,16 @@ Expected sync-engine behavior:
 - apply validated repair patches
 - hand off to verification
 - stop after max attempts
+```
+
+Exit behavior (as implemented by `packages/arch-cli/src/commands/repair.ts`):
+
+```text
+0:  drift repaired and re-verified (or nothing repairable found)
+2:  no project root (no backend.arch in cwd or ancestors)
+64: invalid usage (e.g. --max-attempts is not a positive integer)
+65: the spec failed to parse/validate (diagnostics printed)
+70: unresolved after the attempt cap, or a metadata error
 ```
 
 ---

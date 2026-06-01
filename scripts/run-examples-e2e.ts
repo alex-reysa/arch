@@ -139,7 +139,11 @@ async function runExample(ex: Example): Promise<Evidence> {
 
     // Drift + repair.
     await archStep(ex.name, "check (clean)", ["check", "--cwd", dir], env);
-    await rm(resolve(dir, ex.driftTest), { force: true });
+    // Assert the drift target exists BEFORE deleting it: a generator layout
+    // change would otherwise make `rm({force:true})` a silent no-op and the
+    // drift assertion below would pass for the wrong reason.
+    await assertFile(resolve(dir, ex.driftTest), `${ex.name}: expected drift target ${ex.driftTest} to exist before deletion`);
+    await rm(resolve(dir, ex.driftTest));
     const drift = await archAllowNonZero(ex.name, "check (drift)", ["check", "--cwd", dir], env);
     if (drift.code === 0) throw new E2EError(`${ex.name}: arch check did not report deleted ${ex.driftTest}`);
     await archStep(ex.name, "repair", ["repair", "--cwd", dir], env);

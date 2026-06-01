@@ -42,6 +42,7 @@ deterministic pipeline above does not route through it in V1 (see cutline).
 | `@arch/agents` | Constrained agent task protocol: typed task specs, orchestrator, structured-output validation, agent roles, and pluggable providers (deterministic + optional HTTP LLM). | `agent-task.ts`, `task-builder.ts`, `orchestrator.ts`, `output-validation.ts`, `providers/*.ts`, `roles/*.ts` |
 | `@arch/cli` | User entrypoint + workflow orchestration; the six commands; diagnostics/plan/report printers; project-root resolution; exit codes. | `main.ts`, `commands/{init,parse,plan,apply,check,repair}.ts`, `output/*.ts`, `project-root.ts` |
 | `@arch/test-fixtures` | Shared `.arch` fixtures (valid / invalid / drift) accessed by symbolic id across package test suites. | `index.ts`, `fixtures/` |
+| `@arch/bench` | Intent-to-code synchronization benchmark harness: drives the real CLI over evolving specs, scores typed-diff sync vs regeneration baselines, and runs the external-validation plumbing. Not part of the product surface. | `main.ts`, `runner/*.ts`, `manifest/*.ts`, `external/*.ts` (see `packages/arch-bench/README.md`) |
 
 ### The six CLI commands (`packages/arch-cli/src/commands/`)
 

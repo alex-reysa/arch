@@ -44,7 +44,12 @@ export function renderMigrationSqlForDiff(
     case "model_added": {
       const model = current.models.find((m) => m.id === diff.model_id);
       if (!model) return null;
-      return header(diff) + createTableSql(model) + "\n";
+      // Enum-backed columns reference a Postgres enum type that must be created
+      // before the table that uses it; without this the CREATE TABLE references
+      // an undefined type and the migration fails to execute.
+      const enumBlocks = enumTypesSql(model);
+      const enumPrefix = enumBlocks.length > 0 ? enumBlocks.join("\n") + "\n\n" : "";
+      return header(diff) + enumPrefix + createTableSql(model) + "\n";
     }
     default:
       // Destructive (removed/type-changed) and non-schema diffs do not produce
@@ -57,14 +62,7 @@ export function renderMigrationSqlForDiff(
 export function renderInitialMigrationSql(current: CanonicalIR): string {
   const blocks: string[] = [];
   // Enum types must exist before the columns that reference them.
-  for (const m of current.models) {
-    for (const f of m.fields) {
-      if (f.type.kind !== "enum") continue;
-      const typeNm = `${pascal(m.name)}${pascal(f.name)}`;
-      const members = f.type.values.map((v) => `'${v.replace(/'/g, "''")}'`).join(", ");
-      blocks.push(`CREATE TYPE "${typeNm}" AS ENUM (${members});`);
-    }
-  }
+  for (const m of current.models) blocks.push(...enumTypesSql(m));
   for (const m of current.models) blocks.push(createTableSql(m));
   for (const m of current.models) {
     for (const index of m.indexes) blocks.push(addIndexSql(m, index));
@@ -86,6 +84,22 @@ function header(diff: DiffV1): string {
     "-- Arch-generated migration scaffold. Review before applying.\n" +
     `-- diff: ${diff.diff_id}\n\n`
   );
+}
+
+/**
+ * `CREATE TYPE "<Model><Field>" AS ENUM (...)` for each enum field of a model,
+ * in field order. Shared by the initial migration and `model_added` so a new
+ * table's enum columns always have their backing type created first.
+ */
+function enumTypesSql(model: ModelIR): string[] {
+  const blocks: string[] = [];
+  for (const f of model.fields) {
+    if (f.type.kind !== "enum") continue;
+    const typeNm = `${pascal(model.name)}${pascal(f.name)}`;
+    const members = f.type.values.map((v) => `'${v.replace(/'/g, "''")}'`).join(", ");
+    blocks.push(`CREATE TYPE "${typeNm}" AS ENUM (${members});`);
+  }
+  return blocks;
 }
 
 function addColumnSql(model: ModelIR, field: FieldIR): string {
