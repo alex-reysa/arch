@@ -8,7 +8,7 @@
  * Deterministic baselines run once; live-agent baselines run `repeats` times.
  */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { isLiveBaseline, type BaselineId, type BenchSubject, type BenchTask } from "../manifest/schema.js";
 import { loadManifestSubjects } from "./subjects.js";
@@ -30,6 +30,7 @@ import { applyDriftScripts, measureAndRepairArchDrift } from "./drift.js";
 import { scorePassed, type TaskSignals } from "./score.js";
 import { runDbCheck } from "./db-check.js";
 import { DEFAULT_FAILURE_POLICY, DEFAULT_TASK_MODE, planTaskExecution } from "./run-modes.js";
+import { runWithConcurrency } from "./concurrency.js";
 import { computeGuaranteeVerification } from "./guarantee.js";
 import type {
   BenchResult,
@@ -69,12 +70,16 @@ export interface SuiteOptions {
    * Postgres would never reach the dbCheck (it would report `skipped`).
    */
   readonly databaseUrl?: string;
+  /** Number of independent subject/baseline/repeat chains to run concurrently. */
+  readonly jobs?: number;
+  /** In isolated mode, reuse existing per-task `.result.json` artifacts. */
+  readonly resume?: boolean;
 }
 
 export async function runSuite(opts: SuiteOptions): Promise<BenchResult[]> {
   const log = opts.log ?? (() => {});
   const subjects = loadManifestSubjects(opts.loaded.manifest, opts.subjects);
-  const results: BenchResult[] = [];
+  const units: { subject: BenchSubject; baseline: BaselineId; repeat: number }[] = [];
 
   for (const subject of subjects) {
     for (const baseline of opts.baselines) {
@@ -84,12 +89,19 @@ export async function runSuite(opts: SuiteOptions): Promise<BenchResult[]> {
       }
       const repeats = isLiveBaseline(baseline) ? Math.max(1, opts.repeats) : 1;
       for (let repeat = 1; repeat <= repeats; repeat++) {
-        log(`▶ ${subject.id} · ${baseline} · repeat ${repeat}`);
-        results.push(...(await runSubjectBaseline(opts, subject, baseline, repeat, log)));
+        units.push({ subject, baseline, repeat });
       }
     }
   }
-  return results;
+  const chunks = await runWithConcurrency<(typeof units)[number], BenchResult[]>(units, {
+    jobs: opts.jobs,
+    lockKey: (unit) => providerForBaseline(unit.baseline),
+    run: async (unit) => {
+      log(`▶ ${unit.subject.id} · ${unit.baseline} · repeat ${unit.repeat}`);
+      return runSubjectBaseline(opts, unit.subject, unit.baseline, unit.repeat, log);
+    },
+  });
+  return chunks.flat();
 }
 
 async function runSubjectBaseline(
@@ -108,13 +120,31 @@ async function runSubjectBaseline(
     // so it never replays a previous task's baseline failure.
     const out: BenchResult[] = [];
     for (const task of tasks) {
+      if (opts.resume && opts.artifactsDir) {
+        const existing = await readTaskResultArtifact(opts, subject, baselineId, repeat, task, taskMode, failurePolicy);
+        if (existing) {
+          log(`  ↻ ${task.id} (${baselineId}) reused existing result`);
+          out.push(existing);
+          continue;
+        }
+      }
       const ws = await createWorkspace(`${subject.id}-${baselineId}-r${repeat}-t${task.order}`);
       const archCli = makeArchCli({ repoRoot: opts.repoRoot, env: ws.env });
       try {
         const boot = await bootstrapSpec(opts.loaded, task.fromSpec, ws, archCli);
         if (!boot.ok) {
           log(`  ✗ bootstrap(fromSpec) failed: ${boot.reason}`);
-          out.push(failedResult(task, baselineId, repeat, `bootstrap failed: ${boot.reason}`, taskMode, failurePolicy));
+          out.push(
+            failedResult(
+              task,
+              baselineId,
+              repeat,
+              `bootstrap failed: ${boot.reason}`,
+              taskMode,
+              failurePolicy,
+              opts.validationMode ?? false,
+            ),
+          );
           continue;
         }
         out.push(await runOneTask(opts, subject, task, baselineId, repeat, ws, archCli, log, taskMode, failurePolicy));
@@ -134,7 +164,15 @@ async function runSubjectBaseline(
     if (!boot.ok) {
       log(`  ✗ bootstrap failed: ${boot.reason}`);
       return tasks.map((t) =>
-        failedResult(t, baselineId, repeat, `bootstrap failed: ${boot.reason}`, taskMode, failurePolicy),
+        failedResult(
+          t,
+          baselineId,
+          repeat,
+          `bootstrap failed: ${boot.reason}`,
+          taskMode,
+          failurePolicy,
+          opts.validationMode ?? false,
+        ),
       );
     }
 
@@ -152,7 +190,17 @@ async function runSubjectBaseline(
         const reboot = await bootstrapSpec(opts.loaded, task.fromSpec, ws, archCli);
         if (!reboot.ok) {
           log(`  ✗ restore(fromSpec) failed: ${reboot.reason}`);
-          out.push(failedResult(task, baselineId, repeat, `restore failed: ${reboot.reason}`, taskMode, failurePolicy));
+          out.push(
+            failedResult(
+              task,
+              baselineId,
+              repeat,
+              `restore failed: ${reboot.reason}`,
+              taskMode,
+              failurePolicy,
+              opts.validationMode ?? false,
+            ),
+          );
           priorTaskFailed = true;
           continue;
         }
@@ -313,6 +361,7 @@ async function runOneTask(
       taskKind: task.kind,
       taskMode,
       failurePolicy,
+      validationMode: opts.validationMode ?? false,
       ...(evolve.llm ? { llm: evolve.llm } : {}),
       ...(evolve.note ? { note: evolve.note } : {}),
     };
@@ -323,7 +372,13 @@ async function runOneTask(
   } catch (err) {
     const note = `harness error: ${err instanceof Error ? err.message : String(err)}`;
     log(`  ✗ ${task.id} (${baselineId}) ${note}`);
-    return { ...failedResult(task, baselineId, repeat, note), durationMs: Date.now() - startedAt };
+    logs += `\n=== harness error ===\n${note}\n`;
+    const result = {
+      ...failedResult(task, baselineId, repeat, note, taskMode, failurePolicy, opts.validationMode ?? false),
+      durationMs: Date.now() - startedAt,
+    };
+    await maybeWriteArtifact(opts, subject, baselineId, repeat, task, logs, result);
+    return result;
   }
 }
 
@@ -369,6 +424,7 @@ function failedResult(
   note: string,
   taskMode: TaskMode = DEFAULT_TASK_MODE,
   failurePolicy: FailurePolicy = DEFAULT_FAILURE_POLICY,
+  validationMode = false,
 ): BenchResult {
   return {
     taskId: task.id,
@@ -389,6 +445,7 @@ function failedResult(
     taskKind: task.kind,
     taskMode,
     failurePolicy,
+    validationMode,
     note,
   };
 }
@@ -432,6 +489,41 @@ async function maybeWriteArtifact(
   await mkdir(dir, { recursive: true });
   await writeFile(resolve(dir, `${task.id}.log`), logs, "utf8");
   await writeFile(resolve(dir, `${task.id}.result.json`), JSON.stringify(result, null, 2) + "\n", "utf8");
+}
+
+async function readTaskResultArtifact(
+  opts: SuiteOptions,
+  subject: BenchSubject,
+  baseline: BaselineId,
+  repeat: number,
+  task: BenchTask,
+  taskMode: TaskMode,
+  failurePolicy: FailurePolicy,
+): Promise<BenchResult | undefined> {
+  if (!opts.artifactsDir) return undefined;
+  const file = resolve(opts.artifactsDir, "logs", subject.id, baseline, `r${repeat}`, `${task.id}.result.json`);
+  let raw: string;
+  try {
+    raw = await readFile(file, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
+    throw err;
+  }
+  const parsed = JSON.parse(raw) as BenchResult;
+  if (parsed.taskId !== task.id || parsed.baseline !== baseline || parsed.repeat !== repeat) {
+    throw new Error(
+      `resume artifact key mismatch in ${file}: expected ${task.id}/${baseline}/r${repeat}, ` +
+        `got ${parsed.taskId}/${parsed.baseline}/r${parsed.repeat}`,
+    );
+  }
+  if (
+    parsed.taskMode !== taskMode ||
+    parsed.failurePolicy !== failurePolicy ||
+    parsed.validationMode !== (opts.validationMode ?? false)
+  ) {
+    return undefined;
+  }
+  return parsed;
 }
 
 export { loadManifest };

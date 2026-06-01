@@ -81,6 +81,8 @@ export interface BenchResult {
   readonly taskMode?: TaskMode;
   /** Failure policy in effect for this record. */
   readonly failurePolicy?: FailurePolicy;
+  /** Whether strict validation/paper scoring was in effect for this record. */
+  readonly validationMode?: boolean;
   readonly llm?: LlmMetadata;
   /** Free-form notes / failure reason for the human-readable report. */
   readonly note?: string;

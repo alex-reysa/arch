@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildLiveAgentInvocation,
   runLiveAgent,
+  spawnLiveAgentTransport,
   type LiveAgentProcessResult,
   type LiveAgentTransport,
 } from "../src/llm/agent-runner.js";
@@ -119,5 +120,24 @@ describe("runLiveAgent", () => {
     );
     expect(out.ok).toBe(false);
     if (!out.ok) expect(out.error).toContain("did not return JSON");
+  });
+});
+
+describe("spawnLiveAgentTransport", () => {
+  it("fails closed when the provider process cannot spawn", async () => {
+    const transport = spawnLiveAgentTransport("/definitely/not/a/live-agent");
+    const res = await transport([], { cwd: process.cwd(), stdin: "" });
+    expect(res.code).toBe(127);
+    expect(res.stderr).toMatch(/spawn error/i);
+  });
+
+  it("times out hung provider processes", async () => {
+    const transport = spawnLiveAgentTransport(process.execPath, { timeoutMs: 50 });
+    const res = await transport(["-e", "setTimeout(() => {}, 10_000)"], {
+      cwd: process.cwd(),
+      stdin: "",
+    });
+    expect(res.code).toBe(124);
+    expect(res.stderr).toMatch(/timed out/i);
   });
 });

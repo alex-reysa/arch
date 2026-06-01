@@ -51,3 +51,11 @@ export function parseFailurePolicy(value: string | undefined): FailurePolicy | u
   if (value === "restore-from-spec" || value === "continue-contaminated") return value;
   return undefined;
 }
+
+export function normalizeJobCount(value: number | undefined): number {
+  if (value === undefined) return 1;
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error(`--jobs must be a positive integer, got ${String(value)}`);
+  }
+  return value;
+}

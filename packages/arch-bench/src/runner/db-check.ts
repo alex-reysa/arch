@@ -113,6 +113,26 @@ export interface RunDbCheckOptions {
   readonly timeoutMs?: number;
 }
 
+const dbCheckLocks = new Map<string, Promise<void>>();
+
+export async function withDatabaseCheckLock<T>(url: string, fn: () => Promise<T>): Promise<T> {
+  const prior = dbCheckLocks.get(url) ?? Promise.resolve();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const next = prior.catch(() => undefined).then(() => gate);
+  dbCheckLocks.set(url, next);
+
+  await prior.catch(() => undefined);
+  try {
+    return await fn();
+  } finally {
+    release();
+    if (dbCheckLocks.get(url) === next) dbCheckLocks.delete(url);
+  }
+}
+
 /**
  * Execute a db-check against a real Postgres. Returns `skipped` (without
  * spawning) when no database URL is configured, so smoke runs never require a
@@ -137,11 +157,13 @@ export async function runDbCheck(opts: RunDbCheckOptions): Promise<DbCheckResult
         `Use a database whose name contains a 'bench'/'test' token, or set ARCH_BENCH_DB_ALLOW_ANY=1 to override.`,
     };
   }
-  const env: NodeJS.ProcessEnv = { ...guardEnv, DATABASE_URL: url, ARCH_BENCH_DATABASE_URL: url };
-  const res = await runCommand("pnpm", ["exec", "tsx", opts.scriptPath, opts.projectDir], {
-    cwd: opts.projectDir,
-    env,
-    ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
+  return withDatabaseCheckLock(url, async () => {
+    const env: NodeJS.ProcessEnv = { ...guardEnv, DATABASE_URL: url, ARCH_BENCH_DATABASE_URL: url };
+    const res = await runCommand("pnpm", ["exec", "tsx", opts.scriptPath, opts.projectDir], {
+      cwd: opts.projectDir,
+      env,
+      ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
+    });
+    return parseDbCheckResult(res.stdout, res.code);
   });
-  return parseDbCheckResult(res.stdout, res.code);
 }

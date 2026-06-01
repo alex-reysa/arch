@@ -5,6 +5,7 @@ import {
   parseDbCheckResult,
   resolveDatabaseUrl,
   runDbCheck,
+  withDatabaseCheckLock,
 } from "../src/runner/db-check.js";
 
 describe("parseDbCheckResult", () => {
@@ -113,5 +114,26 @@ describe("runDbCheck URL resolution and guard", () => {
     });
     expect(res.status).toBe("failed");
     expect(res.reason).toMatch(/throwaway/i);
+  });
+});
+
+describe("withDatabaseCheckLock", () => {
+  it("serializes concurrent checks for the same database URL", async () => {
+    const url = `postgres://example/arch_bench_${Date.now()}`;
+    let active = 0;
+    let maxActive = 0;
+
+    await Promise.all(
+      [1, 2, 3].map(() =>
+        withDatabaseCheckLock(url, async () => {
+          active++;
+          maxActive = Math.max(maxActive, active);
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          active--;
+        }),
+      ),
+    );
+
+    expect(maxActive).toBe(1);
   });
 });

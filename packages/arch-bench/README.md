@@ -62,8 +62,16 @@ pnpm bench:smoke
 # Full paper run (requires authenticated live-agent CLIs):
 ARCH_BENCH_LIVE=1 ARCH_BENCH_REPEATS=3 pnpm bench:paper
 
+# Resumable live run with safe in-process parallelism:
+ARCH_BENCH_LIVE=1 pnpm bench:paper -- \
+  --task-mode isolated --failure-policy restore-from-spec \
+  --jobs 2 --resume
+
 # Re-summarize an existing run:
 pnpm bench:summarize artifacts/bench/<run-id>/results.json
+
+# Recover final JSON/CSV/Markdown from per-task logs after an interrupted run:
+tsx packages/arch-bench/src/main.ts recover --out artifacts/bench/<run-id>
 
 # Merge sharded paper runs:
 pnpm bench:merge -- --inputs "artifacts/bench/paper-*/results.json" \
@@ -87,6 +95,9 @@ tsx packages/arch-bench/src/main.ts run --suite smoke \
 
 Outputs land in `artifacts/bench/<run-id>/`:
 `results.json`, `results.csv`, `summary.md`, plus per-task `logs/`.
+Each task writes `logs/<subject>/<baseline>/r<repeat>/<task>.result.json`;
+`recover` can rebuild the final report artifacts from those files after an
+interrupted run.
 
 ### Environment
 
@@ -94,9 +105,14 @@ Outputs land in `artifacts/bench/<run-id>/`:
 - `ARCH_BENCH_CLAUDE_MODEL=sonnet` — Claude model. Falls back to
   `ARCH_BENCH_MODEL` for backward compatibility, then `sonnet`.
 - `ARCH_BENCH_GROK_MODEL=grok-build` — Grok Build model.
-- `ARCH_BENCH_COMPOSER_MODEL=composer-2.5` — Cursor Composer model.
+- `ARCH_BENCH_COMPOSER_MODEL=composer-2.5` — Cursor Composer model. If
+  Cursor reports the explicit Composer quota is exhausted, use
+  `ARCH_BENCH_COMPOSER_MODEL=auto` and report the run as Cursor Auto, not
+  Composer 2.5.
 - `ARCH_BENCH_CLAUDE_BIN=claude`, `ARCH_BENCH_GROK_BIN=grok`,
   `ARCH_BENCH_COMPOSER_BIN=cursor-agent` — override CLI binaries.
+- `ARCH_BENCH_LIVE_TIMEOUT_MS=<ms>` — per live-agent CLI call timeout
+  (default 30 minutes; `0` disables the timeout).
 - `ARCH_BENCH_REPEATS=<n>` — live-baseline repeats (default 3).
 - `ARCH_BENCH_SMOKE=1` — enable the gated integration tests under
   `test-integration/`.
@@ -122,12 +138,38 @@ pnpm bench:paper -- \
   --max-tasks 2 \
   --repeats 1 \
   --baselines claude-direct-edit,claude-broad-constrained,grok-direct-edit,grok-broad-constrained,composer-direct-edit,composer-broad-constrained \
+  --task-mode isolated \
+  --failure-policy restore-from-spec \
+  --jobs 2 \
+  --resume \
   --out artifacts/bench/calibration-multimodel
 ```
 
-The full run is intentionally shardable by subject, provider, variant, or
-repeat, then merged with `arch-bench merge`. This avoids losing multi-day live
-runs to one process failure.
+If the Composer calibration fails with Cursor's "out of usage; switch to Auto"
+message, rerun the Composer shard with `ARCH_BENCH_COMPOSER_MODEL=auto`. The
+model is captured in `results.json`/CSV, so mixed Composer 2.5 versus Auto runs
+remain auditable.
+
+`--jobs` parallelizes independent `(subject, baseline, repeat)` chains while
+preserving task order within each chain. Live providers are serialized per
+provider account inside one process, so `--jobs 2` can run one Grok shard and one
+Composer shard concurrently, but will not run two Grok calls at once. Migration
+`dbCheck`s against the same database URL are also serialized because each check
+resets the database's `public` schema.
+
+`--resume` is intentionally limited to `--task-mode isolated`: a restarted run
+reuses completed per-task `.result.json` artifacts and only executes missing
+tasks. After an interruption, either rerun the same command with `--resume` or
+rebuild reports from the partial artifacts:
+
+```bash
+tsx packages/arch-bench/src/main.ts recover --out artifacts/bench/calibration-multimodel
+```
+
+The full run is also shardable by subject, provider, or variant, then merged
+with `arch-bench merge`. Do not shard repeats with today's CLI unless each shard
+has disjoint repeat numbers; separate `--repeats 1` shards for the same
+task/baseline both produce `repeat: 1` and correctly collide during merge.
 
 ## Dataset
 

@@ -15,7 +15,7 @@ import { existsSync } from "node:fs";
 import { BASELINE_IDS, isLiveBaseline, type BaselineId } from "./manifest/schema.js";
 import { buildTaskIndex, loadManifest } from "./manifest/load.js";
 import { validateManifest, validateManifestStrict } from "./manifest/validate.js";
-import { parseFailurePolicy, parseTaskMode } from "./runner/run-modes.js";
+import { DEFAULT_TASK_MODE, normalizeJobCount, parseFailurePolicy, parseTaskMode } from "./runner/run-modes.js";
 import { resolveDatabaseUrl } from "./runner/db-check.js";
 import type { FailurePolicy, TaskMode } from "./report/results.js";
 import { runSuite } from "./runner/orchestrator.js";
@@ -23,6 +23,7 @@ import { buildRunResults, type RunResults } from "./report/results.js";
 import { writeRunArtifacts } from "./report/write.js";
 import { toSummaryMarkdown } from "./report/summary.js";
 import { mergeRunResults } from "./report/merge.js";
+import { recoverRunResultsFromArtifacts } from "./report/recover.js";
 import { spawnLiveAgentTransport, type LiveAgentProvider, type LiveAgentTransport } from "./llm/agent-runner.js";
 import { preflightLiveProviders, type LiveCliConfig } from "./llm/preflight.js";
 import { loadExternalManifest, readDatasetContent, type LoadedExternalManifest } from "./external/load.js";
@@ -54,6 +55,7 @@ async function main(argv: string[]): Promise<number> {
   if (command === "validate") return validateCommand(rest);
   if (command === "summarize") return summarizeCommand(rest);
   if (command === "merge") return mergeCommand(rest);
+  if (command === "recover") return recoverCommand(rest);
   if (command === "external") return externalCommand(rest);
   if (command === "capability-matrix") return capabilityMatrixCommand(rest);
   process.stderr.write(`arch-bench: unknown command '${command}'\n`);
@@ -71,6 +73,7 @@ function printHelp(): void {
       "  arch-bench validate [--strict] [--manifest <path>]",
       "  arch-bench summarize --input <results.json> [--manifest <path>]",
       "  arch-bench merge --inputs <results.json[,results.json]|glob> --out <dir> [--manifest <path>]",
+      "  arch-bench recover --out <run-dir> [--suite <paper|smoke|external>] [--manifest <path>]",
       "  arch-bench external <validate|lock|run|analyze> [options]   (Phase 2 external validation)",
       "  arch-bench capability-matrix [--format md|json] [--out <file>]",
       "",
@@ -84,6 +87,8 @@ function printHelp(): void {
       "  --repeats <n>             Live-baseline repeats (default 3, env ARCH_BENCH_REPEATS)",
       "  --task-mode <sequential|isolated>          Run mode (default sequential)",
       "  --failure-policy <restore-from-spec|continue-contaminated>  (default continue-contaminated)",
+      "  --jobs <n>               Concurrent subject/baseline/repeat chains (default 1)",
+      "  --resume                 Reuse completed per-task artifacts (requires isolated mode)",
       "  --strict                  Validation/paper scoring: migration tasks need a passing dbCheck",
       "  --keep                    Keep temp workspaces",
       "",
@@ -111,6 +116,8 @@ interface RunArgs {
   taskMode: TaskMode | undefined;
   failurePolicy: FailurePolicy | undefined;
   strict: boolean;
+  jobs: number | undefined;
+  resume: boolean;
   parseErrors: string[];
 }
 
@@ -127,6 +134,8 @@ function parseRunArgs(argv: readonly string[]): RunArgs {
     taskMode: undefined,
     failurePolicy: undefined,
     strict: false,
+    jobs: undefined,
+    resume: false,
     parseErrors: [],
   };
   for (let i = 0; i < argv.length; i++) {
@@ -152,6 +161,8 @@ function parseRunArgs(argv: readonly string[]): RunArgs {
           `invalid --failure-policy: ${JSON.stringify(v)} (expected restore-from-spec|continue-contaminated)`,
         );
     } else if (a === "--strict") args.strict = true;
+    else if (a === "--jobs") args.jobs = Number(argv[++i]);
+    else if (a === "--resume") args.resume = true;
     else if (a === "--keep") args.keep = true;
   }
   return args;
@@ -161,6 +172,17 @@ async function runCommand(argv: readonly string[]): Promise<number> {
   const args = parseRunArgs(argv);
   if (args.parseErrors.length > 0) {
     for (const e of args.parseErrors) process.stderr.write(`arch-bench: ${e}\n`);
+    return 64;
+  }
+  let jobs: number;
+  try {
+    jobs = normalizeJobCount(args.jobs);
+  } catch (err) {
+    process.stderr.write(`arch-bench: ${err instanceof Error ? err.message : String(err)}\n`);
+    return 64;
+  }
+  if (args.resume && (args.taskMode ?? DEFAULT_TASK_MODE) !== "isolated") {
+    process.stderr.write("arch-bench: --resume requires --task-mode isolated\n");
     return 64;
   }
   const manifestPath = args.manifest ?? resolve(REPO_ROOT, "benchmarks", "manifest.json");
@@ -211,7 +233,7 @@ async function runCommand(argv: readonly string[]): Promise<number> {
   const databaseUrl = resolveDatabaseUrl(process.env);
   const validationMode = args.strict || args.suite === "paper";
   process.stdout.write(
-    `  mode: task-mode=${args.taskMode ?? "sequential"} failure-policy=${args.failurePolicy ?? "continue-contaminated"} strict=${validationMode}\n`,
+    `  mode: task-mode=${args.taskMode ?? "sequential"} failure-policy=${args.failurePolicy ?? "continue-contaminated"} strict=${validationMode} jobs=${jobs} resume=${args.resume ? "yes" : "no"}\n`,
   );
   if (validationMode) {
     const strict = validateManifestStrict(loaded.manifest);
@@ -237,6 +259,8 @@ async function runCommand(argv: readonly string[]): Promise<number> {
     ...(args.taskMode ? { taskMode: args.taskMode } : {}),
     ...(args.failurePolicy ? { failurePolicy: args.failurePolicy } : {}),
     ...(databaseUrl !== undefined ? { databaseUrl } : {}),
+    jobs,
+    resume: args.resume,
     validationMode,
     log: (m) => process.stdout.write(m + "\n"),
   });
@@ -250,6 +274,50 @@ async function runCommand(argv: readonly string[]): Promise<number> {
 
   const passed = results.filter((r) => r.passed).length;
   process.stdout.write(`\narch-bench: ${passed}/${results.length} records passed\n`);
+  process.stdout.write(`  results: ${written.resultsJson}\n  csv:     ${written.resultsCsv}\n  summary: ${written.summaryMd}\n`);
+  return 0;
+}
+
+async function recoverCommand(argv: readonly string[]): Promise<number> {
+  let out: string | undefined;
+  let manifestPath: string | undefined;
+  let suite = "paper";
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--out") out = argv[++i];
+    else if (a === "--manifest") manifestPath = argv[++i];
+    else if (a === "--suite") suite = argv[++i] ?? "paper";
+  }
+  if (!out) {
+    process.stderr.write("arch-bench recover: --out <run-dir> is required\n");
+    return 64;
+  }
+
+  const mPath = manifestPath ?? resolve(REPO_ROOT, "benchmarks", "manifest.json");
+  let loaded;
+  try {
+    loaded = await loadManifest(mPath);
+  } catch (err) {
+    process.stderr.write(`arch-bench recover: ${err instanceof Error ? err.message : String(err)}\n`);
+    return 65;
+  }
+
+  const outDir = resolve(out);
+  const runId = `recovered-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+  let run;
+  try {
+    run = await recoverRunResultsFromArtifacts(outDir, loaded.manifest, {
+      runId,
+      createdAt: new Date().toISOString(),
+      suite,
+      manifestVersion: loaded.manifest.schema_version,
+    });
+  } catch (err) {
+    process.stderr.write(`arch-bench recover: ${err instanceof Error ? err.message : String(err)}\n`);
+    return 65;
+  }
+  const written = await writeRunArtifacts(outDir, run, buildTaskIndex(loaded.manifest));
+  process.stdout.write(`arch-bench: recovered ${run.results.length} records from ${outDir}\n`);
   process.stdout.write(`  results: ${written.resultsJson}\n  csv:     ${written.resultsCsv}\n  summary: ${written.summaryMd}\n`);
   return 0;
 }
@@ -755,8 +823,18 @@ function buildLiveTransports(
   config: LiveCliConfig,
 ): Partial<Record<LiveAgentProvider, LiveAgentTransport>> {
   const transports: Partial<Record<LiveAgentProvider, LiveAgentTransport>> = {};
-  for (const provider of providers) transports[provider] = spawnLiveAgentTransport(config.bins[provider]);
+  const timeoutMs = readLiveAgentTimeoutMs();
+  for (const provider of providers) {
+    transports[provider] = spawnLiveAgentTransport(config.bins[provider], { timeoutMs });
+  }
   return transports;
+}
+
+function readLiveAgentTimeoutMs(): number {
+  const raw = process.env["ARCH_BENCH_LIVE_TIMEOUT_MS"];
+  if (raw === undefined) return 30 * 60_000;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 30 * 60_000;
 }
 
 function providersForBaselines(baselines: readonly BaselineId[]): LiveAgentProvider[] {

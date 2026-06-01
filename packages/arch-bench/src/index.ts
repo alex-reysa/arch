@@ -44,6 +44,7 @@ export {
 export { toCsv } from "./report/csv.js";
 export { toSummaryMarkdown, type TaskIndex, type TaskIndexEntry } from "./report/summary.js";
 export { mergeRunResults, type MergeMeta } from "./report/merge.js";
+export { collectResultArtifacts, recoverRunResultsFromArtifacts } from "./report/recover.js";
 export { writeRunArtifacts, type WrittenArtifacts } from "./report/write.js";
 
 export { compileSpec, type CompileResult } from "./runner/compile.js";

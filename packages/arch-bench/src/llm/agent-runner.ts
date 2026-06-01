@@ -38,6 +38,12 @@ export type LiveAgentTransport = (
   opts: { readonly cwd: string; readonly stdin: string },
 ) => Promise<LiveAgentProcessResult>;
 
+export interface SpawnLiveAgentTransportOptions {
+  readonly timeoutMs?: number;
+}
+
+const DEFAULT_LIVE_AGENT_TIMEOUT_MS = 30 * 60_000;
+
 export type LiveAgentOutcome =
   | {
       readonly ok: true;
@@ -168,21 +174,46 @@ export async function runLiveAgent(
   return { ok: true, text, raw, exitCode: res.code, llm: metadataFromEnvelope(req, parsed) };
 }
 
-export function spawnLiveAgentTransport(bin: string): LiveAgentTransport {
+export function spawnLiveAgentTransport(
+  bin: string,
+  opts: SpawnLiveAgentTransportOptions = {},
+): LiveAgentTransport {
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_LIVE_AGENT_TIMEOUT_MS;
   return (args, opts) =>
-    new Promise<LiveAgentProcessResult>((resolve, reject) => {
+    new Promise<LiveAgentProcessResult>((resolve) => {
       const child = spawn(bin, [...args], { cwd: opts.cwd });
       let stdout = "";
       let stderr = "";
+      let settled = false;
+      let timer: NodeJS.Timeout | undefined;
+      const finish = (code: number) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        resolve({ code, stdout, stderr });
+      };
+      if (timeoutMs > 0) {
+        timer = setTimeout(() => {
+          stderr += `\n[bench] live agent timed out after ${timeoutMs}ms\n`;
+          child.kill("SIGKILL");
+          finish(124);
+        }, timeoutMs);
+      }
       child.stdout.on("data", (d: Buffer) => {
         stdout += d.toString();
       });
       child.stderr.on("data", (d: Buffer) => {
         stderr += d.toString();
       });
-      child.on("error", (err) => reject(err));
-      child.on("close", (code) => resolve({ code: code ?? -1, stdout, stderr }));
-      child.stdin.write(opts.stdin);
+      child.on("error", (err) => {
+        stderr += `\n[bench] spawn error: ${err instanceof Error ? err.message : String(err)}\n`;
+        finish(127);
+      });
+      child.on("close", (code) => finish(code ?? -1));
+      child.stdin.on("error", (err) => {
+        stderr += `\n[bench] stdin error: ${err instanceof Error ? err.message : String(err)}\n`;
+      });
+      if (opts.stdin.length > 0) child.stdin.write(opts.stdin);
       child.stdin.end();
     });
 }
