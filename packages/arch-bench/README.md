@@ -303,5 +303,7 @@ defined in [docs/PHASE2_EXTERNAL_PLUMBING.md](../../docs/PHASE2_EXTERNAL_PLUMBIN
   (tools OFF, isolated tmpdir): the bench runs provider CLIs with tools ON in
   the project dir so agents edit real files. The transport is injectable, so the
   whole path is unit- and integration-tested with fakes.
-- CI runs only the unit tests + `bench:smoke`. The full `bench:paper` run is
-  manual because it is live, slow, and billable.
+- Default CI runs build, typecheck, unit tests, fast arch-bench validation gates,
+  the deterministic e2e transcript, and a hermetic bench-smoke job
+  (`pnpm bench:smoke` plus `ARCH_BENCH_SMOKE=1 pnpm --filter @arch/bench test`).
+  The full `bench:paper` run is manual because it is live, slow, and billable.

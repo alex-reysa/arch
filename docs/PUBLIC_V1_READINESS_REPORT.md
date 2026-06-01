@@ -1,10 +1,17 @@
-# Arch Public V1 Readiness Report
+# Arch Public V1 Readiness Report (Archived Snapshot)
 
-> _Point-in-time snapshot (2026-05-30, branch `arch-v1-readiness`, base `6109f83`)._
-> _Per-run figures below — the 228-test count, the "8 packages" total, and the
+> **Archived point-in-time evidence, not the current project status.**
+> This report preserves the Public V1 readiness assessment from 2026-05-30
+> (branch `arch-v1-readiness`, base `6109f83`). It predates later validation-gate,
+> benchmark, external-plumbing, and hardening work. Use the current
+> [`README.md`](../README.md), [`ARCH_VALIDATION_GATE_SPEC_AND_ROADMAP.md`](ARCH_VALIDATION_GATE_SPEC_AND_ROADMAP.md),
+> and the latest local/CI verification results for present readiness.
+>
+> Per-run figures below — the 228-test count, the "8 packages" total, and the
 > commit/branch — describe the repo at that moment and have since drifted (a 9th
-> package, `@arch/bench`, was added later). The durable claim is the product
-> thesis in §3, not these counts; re-run the commands in §13 for current numbers._
+> package, `@arch/bench`, was added later). Do not cite the verdict below as the
+> current release decision without rerunning the relevant gates against the current
+> branch and reconciling current limitations.
 
 **Date:** 2026-05-30
 **Branch:** `arch-v1-readiness`
@@ -15,7 +22,11 @@ on top of the internal V1 baseline in `docs/V1_READINESS_REPORT.md`.
 
 ---
 
-## 1. Verdict
+## 1. Historical Verdict (2026-05-30)
+
+The following verdict is preserved from the archived snapshot. It was the
+assessment for that point in time, not a statement that the current branch is
+production-ready or fully externally validated.
 
 **Arch is ready for an Apache-2.0 Public V1 open-source release.** An external
 developer can clone it, install, run the SocialFeed demo, inspect generated code
